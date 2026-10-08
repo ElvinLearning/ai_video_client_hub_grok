@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cozy Agent · Cozy Digital</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+  <body data-page="agent">
+    <header class="top">
+      <a class="brand" href="/"><img src="/brand/cozy-digital-logo.png" alt="" /><span>Cozy <span class="digital">Digital</span></span></a>
+      <nav>
+        <a href="/portal">Desk</a>
+        <button type="button" id="logout">Sign out</button>
+      </nav>
+    </header>
+    <main class="wrap">
+      <p class="muted">Premium tier</p>
+      <h1>Cozy <em>Agent.</em></h1>
+      <p class="banner" id="tier-note">A guided brief. It uses what you type. It does not browse, and it does not invent a campaign you did not describe.</p>
+      <section class="card">
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <form id="agent-form" class="row" style="margin-top: 0.8rem">
+          <label style="flex: 1; margin: 0">Reply <input name="text" required maxlength="1000" placeholder="A sentence is enough" /></label>
+          <button class="primary" type="submit">Send</button>
+        </form>
+        <div class="chips" style="margin-top: 0.6rem">
+          <button type="button" data-chip="1">Shot 1</button>
+          <button type="button" data-chip="2">Shot 2</button>
+          <button type="button" data-chip="3">Shot 3</button>
+          <button type="button" data-chip="queue">Queue it</button>
+          <button type="button" id="reset">Start over</button>
+        </div>
+        <p class="error" id="agent-error" role="alert"></p>
+      </section>
+    </main>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
