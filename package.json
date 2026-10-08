@@ -9,15 +9,15 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "test": "node --test test/*.js",
-    "vendor": "node scripts/vendor.mjs",
-    "critic": "node tools/critic.mjs"
+    "critic": "node tools/critic.mjs",
+    "paint": "node tools/paint/run.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
-    "hono": "^4.10.7",
-    "three": "^0.170.0"
+    "hono": "^4.10.7"
   },
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.56.1",
+    "three": "^0.170.0"
   }
 }

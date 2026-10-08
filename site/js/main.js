@@ -1,190 +1,263 @@
-import { createGraphics } from "./graphics.js"
-import { applyScroll, mountPricing, placeChapters } from "./dom.js"
-import { chapterAt, end, states } from "./timeline.js"
+import { mountPricing } from "./pricing.js"
+import { chapters, clamp, methodState, pinProgress, smoothstep } from "./timeline.js"
 
 const params = new URLSearchParams(location.search)
-const motionQuery = params.get("motion")
-const reduced =
-  motionQuery === "reduce" ||
-  (motionQuery !== "full" && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-
 const root = document.documentElement
-root.classList.toggle("is-reduced", reduced)
-
-const canvas = document.getElementById("gl")
-const hud = document.getElementById("hud")
+const reduced = root.classList.contains("is-reduced")
 const debug = params.get("debug") === "1"
+const hud = document.getElementById("hud")
 if (debug && hud) hud.hidden = false
 
-let graphics = null
-let target = window.scrollY / Math.max(1, window.innerHeight)
-let value = target
-let last = performance.now()
-let active = "intro"
-const samples = []
-let bench = null
-let filmStart = 0
-let filmArmed = params.get("film") === "1"
+const $ = (s, el = document) => el.querySelector(s)
+const $$ = (s, el = document) => [...el.querySelectorAll(s)]
 
-function onScroll() {
-  target = window.scrollY / Math.max(1, window.innerHeight)
-}
+const topbar = $(".topbar")
+const bar = $(".progress > span")
+const hero = $(".hero")
+const heroCopy = $(".hero-copy")
+const cue = $(".scroll-cue")
+const closing = $(".closing")
+const method = $(".method")
+const plates = $$(".plate")
+const steps = $$(".step")
+const statement = $("[data-words]")
+const lineage = $(".lineage")
+const track = $(".hanging-track")
+const agentArt = $(".agent-art img")
+const navLinks = $$("[data-nav]")
+const sections = chapters
+  .map((c) => ({ ...c, el: document.querySelector(`[data-chapter="${c.id}"]`) }))
+  .filter((c) => c.el)
 
-function goto(name, immediate = false) {
-  if (reduced && typeof name === "string") {
-    document.querySelector(`[data-chapter="${name}"]`)?.scrollIntoView({ behavior: "auto", block: "start" })
-    return
+// ---------- words of the statement light up as it is read ----------
+let words = []
+if (statement) {
+  const text = statement.textContent.trim().replace(/\s+/g, " ")
+  statement.textContent = ""
+  for (const [i, word] of text.split(" ").entries()) {
+    const span = document.createElement("span")
+    span.className = "w"
+    span.textContent = word
+    statement.append(span, i < text.split(" ").length - 1 ? " " : "")
   }
-  const next = typeof name === "number" ? name : states[name]
-  if (next == null) return
-  const y = next * window.innerHeight
-  window.scrollTo(0, y)
-  target = next
-  if (immediate || reduced) value = next
+  words = $$(".w", statement)
 }
 
-window.addEventListener("scroll", onScroll, { passive: true })
-document.querySelectorAll("[data-goto]").forEach((node) => {
-  node.addEventListener("click", () => goto(node.dataset.goto))
-})
-
-let visible = "field"
-if (reduced) {
-  const observer = new IntersectionObserver(
+// ---------- reveal on entry, with a small stagger ----------
+$$(".cards [data-reveal]").forEach((el, i) => el.style.setProperty("--delay", `${(i % 3) * 0.08}s`))
+$$(".chat [data-reveal]").forEach((el, i) => el.style.setProperty("--delay", `${i * 0.45}s`))
+if (!reduced && "IntersectionObserver" in window) {
+  const io = new IntersectionObserver(
     (entries) => {
-      const shown = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-      if (!shown) return
-      visible = shown.target.dataset.chapter || visible
-      target = states[visible] ?? target
-      value = target
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-in")
+          io.unobserve(e.target)
+        }
+      }
     },
-    { threshold: [0.35, 0.6] },
+    { rootMargin: "0px 0px -12% 0px", threshold: 0.12 },
   )
-  document.querySelectorAll("[data-chapter]").forEach((node) => observer.observe(node))
+  $$("[data-reveal]").forEach((el) => io.observe(el))
+} else {
+  $$("[data-reveal]").forEach((el) => el.classList.add("is-in"))
 }
 
-function filmOn() {
-  return root.classList.contains("is-film")
-}
+// ---------- pointer, eased ----------
+const pointer = { x: 0, y: 0, sx: 0, sy: 0 }
+window.addEventListener(
+  "pointermove",
+  (e) => {
+    if (e.pointerType !== "mouse") return
+    pointer.x = (e.clientX / innerWidth) * 2 - 1
+    pointer.y = (e.clientY / innerHeight) * 2 - 1
+  },
+  { passive: true },
+)
+
+// ---------- layout ----------
+let vw = innerWidth
+let vh = innerHeight
+let wide = vw > 860
+let hangDistance = 0
 
 function layout() {
-  placeChapters(filmOn())
-  if (graphics) graphics.resize()
-  onScroll()
-  if (!filmOn()) value = target
-  active = applyScroll(value, filmOn())
-}
-
-try {
-  if (canvas && !reduced) {
-    graphics = createGraphics(canvas)
-    root.classList.add("is-film")
+  vw = innerWidth
+  vh = innerHeight
+  wide = vw > 860
+  if (lineage && track) {
+    if (!reduced && wide) {
+      const pad = parseFloat(getComputedStyle($(".lineage-pin")).paddingLeft) || 0
+      hangDistance = Math.max(0, track.scrollWidth - (vw - pad * 2))
+      lineage.style.setProperty("--hang-h", `${Math.round(vh + hangDistance * 1.1)}px`)
+    } else {
+      hangDistance = 0
+      lineage.style.removeProperty("--hang-h")
+    }
   }
-} catch (error) {
-  console.error(error)
-  root.classList.remove("is-film")
-  graphics = null
+  dirty = true
+}
+window.addEventListener("resize", layout)
+window.addEventListener("scroll", () => (dirty = true), { passive: true })
+
+function setLayer(el, x, y, s) {
+  if (!el) return
+  el.style.setProperty("--lx", `${x.toFixed(2)}px`)
+  el.style.setProperty("--ly", `${y.toFixed(2)}px`)
+  if (s != null) el.style.setProperty("--ls", s.toFixed(4))
 }
 
-layout()
-mountPricing()
-window.addEventListener("resize", layout)
+function paintStage(scope, p, px, py) {
+  if (!scope) return
+  const back = $(".layer-back", scope)
+  const mid = $(".layer-mid", scope)
+  const front = $(".layer-front", scope)
+  setLayer(back, px * 6, p * vh * 0.1 + py * 4, 1.04 + p * 0.02)
+  setLayer(mid, px * 14, p * vh * 0.2 + py * 8, 1.04 + p * 0.03)
+  setLayer(front, px * 30, p * vh * 0.36 + py * 14, 1.06 + p * 0.05)
+  for (const glow of $$(".glow", scope)) setLayer(glow, px * 14, p * vh * 0.2 + py * 8)
+}
+
+let active = "hero"
+let dirty = true
+
+function update() {
+  const y = window.scrollY
+  const max = Math.max(1, document.documentElement.scrollHeight - vh)
+  bar?.style.setProperty("--progress", (y / max).toFixed(4))
+  topbar?.classList.toggle("is-solid", y > vh * 0.55)
+
+  // hero: layers drift apart as the page lifts away
+  if (hero) {
+    const r = hero.getBoundingClientRect()
+    if (r.bottom > 0) {
+      const p = clamp(-r.top / r.height, 0, 1)
+      paintStage(hero, p, pointer.sx, pointer.sy)
+      heroCopy?.style.setProperty("--copy-y", `${(-p * vh * 0.22).toFixed(1)}px`)
+      const o = (1 - smoothstep(0.04, 0.5, p)).toFixed(3)
+      heroCopy?.style.setProperty("--copy-o", o)
+      cue?.style.setProperty("--copy-o", (1 - smoothstep(0, 0.12, p)).toFixed(3))
+    }
+  }
+
+  // closing plate: the same depth trick, entering from below
+  if (closing) {
+    const r = closing.getBoundingClientRect()
+    if (r.top < vh && r.bottom > 0) {
+      const p = clamp((r.top + r.height) / (vh + r.height), 0, 1) - 0.5
+      paintStage(closing, p * 0.5, pointer.sx, pointer.sy)
+    }
+  }
+
+  // statement
+  if (statement && words.length) {
+    const r = statement.getBoundingClientRect()
+    const p = clamp((vh * 0.9 - r.top) / (r.height + vh * 0.45), 0, 1)
+    const lit = Math.round(p * words.length * 1.15)
+    words.forEach((w, i) => w.classList.toggle("is-lit", i < lit))
+  }
+
+  // method: brush the next plate over the last
+  if (method && wide) {
+    const p = pinProgress(method.getBoundingClientRect(), vh)
+    const { step, wipe } = methodState(p)
+    plates.forEach((plate, i) => {
+      plate.style.setProperty("--wipe", wipe[i].toFixed(4))
+      plate.style.setProperty("--zoom", (1.1 - 0.1 * wipe[i] - 0.03 * clamp(p * 3 - i, 0, 1)).toFixed(4))
+      plate.classList.toggle("is-on", i === step)
+    })
+    steps.forEach((s, i) => s.classList.toggle("is-on", i === step))
+  }
+
+  // lineage: the hanging slides past
+  if (lineage && track && hangDistance > 0) {
+    const p = pinProgress(lineage.getBoundingClientRect(), vh)
+    track.style.setProperty("--hang-x", `${(-p * hangDistance).toFixed(1)}px`)
+  }
+
+  // agent: a slow push in
+  if (agentArt) {
+    const r = agentArt.getBoundingClientRect()
+    if (r.top < vh && r.bottom > 0) {
+      const p = clamp((vh - r.top) / (vh + r.height), 0, 1)
+      agentArt.style.setProperty("--zoom", (1.12 - p * 0.1).toFixed(4))
+    }
+  }
+
+  // which chapter is under the bar
+  let current = sections[0]
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= vh * 0.45) current = s
+  }
+  if (current && current.id !== active) {
+    active = current.id
+    navLinks.forEach((a) => a.classList.toggle("is-active", a.dataset.nav === current.nav))
+  }
+}
+
+// ---------- loop ----------
+const samples = []
+let last = performance.now()
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000)
+  samples.push(dt > 0 ? 1 / dt : 60)
+  if (samples.length > 45) samples.shift()
+  last = now
+  const k = 1 - Math.exp(-dt * 5)
+  const dx = pointer.x - pointer.sx
+  const dy = pointer.y - pointer.sy
+  if (Math.abs(dx) + Math.abs(dy) > 0.0005) {
+    pointer.sx += dx * k
+    pointer.sy += dy * k
+    dirty = true
+  }
+  if (dirty) {
+    dirty = false
+    update()
+  }
+  if (debug && hud) hud.textContent = `${app.fps.toFixed(0)} fps · ${active}`
+  app.fps = samples.reduce((a, b) => a + b, 0) / samples.length
+  requestAnimationFrame(frame)
+}
+
+// ---------- navigation ----------
+function goto(name) {
+  const el = document.querySelector(`[data-chapter="${name}"]`)
+  if (!el) return
+  if (lineage && track && hangDistance > 0 && lineage.contains(el) && el !== lineage) {
+    const index = $$(".work", track).indexOf(el)
+    const share = index / Math.max(1, $$(".work", track).length - 1)
+    const top = lineage.getBoundingClientRect().top + window.scrollY
+    window.scrollTo(0, top + share * (lineage.offsetHeight - vh))
+    return
+  }
+  el.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" })
+}
 
 const app = {
   ready: false,
   reducedMotion: reduced,
-  states,
-  layout,
+  chapters: chapters.map((c) => c.id),
   goto,
   fps: 0,
-  active: "hero",
-  warmMs: graphics?.warmMs ?? 0,
-  bench: null,
-  get scroll() {
-    return { target, value }
-  },
-  play() {
-    filmArmed = true
-    filmStart = 0
+  get active() {
+    return active
   },
 }
 window.__app = app
 
-function frame(now) {
-  const rawDt = (now - last) / 1000
-  const dt = Math.min(0.05, rawDt)
-  last = now
-  if (!reduced) requestAnimationFrame(frame)
-
-  const auto = params.get("bench") === "1" ? "bench" : filmArmed ? "film" : ""
-  if (auto && !reduced && app.ready) {
-    if (!filmStart) filmStart = now
-    const elapsed = now - filmStart
-    if (auto === "bench") {
-      const duration = 9000
-      const t = Math.min(1, elapsed / duration)
-      const eased = t * t * (3 - 2 * t)
-      window.scrollTo(0, eased * end * window.innerHeight)
-      target = eased * end
-    } else {
-      const duration = 28000
-      const t = Math.min(1, elapsed / duration)
-      const next = t * states.cta
-      window.scrollTo(0, next * window.innerHeight)
-      target = next
-    }
-  }
-
-  if (reduced) value = target
-  else value += (target - value) * (1 - Math.exp(-dt * 7.5))
-  if (Math.abs(target - value) < 0.0004) value = target
-
-  active = applyScroll(value, filmOn())
-  const motion = reduced ? 0 : 1
-  const time = reduced ? 0 : now / 1000
-  if (graphics && root.classList.contains("is-film")) {
-    graphics.render({ value, time, motion })
-  }
-
-  const fps = rawDt > 0 ? 1 / rawDt : 0
-  samples.push(fps)
-  if (samples.length > 45) samples.shift()
-  app.fps = samples.reduce((sum, n) => sum + n, 0) / samples.length
-  app.active = active
-  app.renderer = graphics?.rendererName || "reduced-motion"
-  app.quality = graphics?.quality || (reduced ? "reduced-motion" : "unavailable")
-  app.ready = true
-  root.classList.add("is-ready")
-  root.classList.remove("is-booting")
-
-  if (params.get("bench") === "1" && !reduced && filmStart) {
-    if (!bench) bench = { frames: 0, minFps: Infinity, sum: 0, done: false }
-    if (now - filmStart > 400) {
-      bench.frames += 1
-      bench.sum += fps
-      bench.minFps = Math.min(bench.minFps, fps)
-    }
-    if (now - filmStart >= 9000) {
-      bench.done = true
-      bench.avgFps = bench.sum / Math.max(1, bench.frames)
-      app.bench = bench
-    }
-  }
-
-  if (debug && hud) {
-    const chapter = chapterAt(value)
-    hud.textContent = `${app.fps.toFixed(0)} fps · ${value.toFixed(2)} vh · ${chapter.id}`
-  }
-}
-
-requestAnimationFrame(frame)
+layout()
+mountPricing()
 if (reduced) {
+  update()
+} else {
   requestAnimationFrame(frame)
 }
 
-setTimeout(() => {
+// Ready once the hero painting can be shown.
+const heroImages = $$(".hero img").filter((img) => getComputedStyle(img).display !== "none")
+Promise.all(heroImages.map((img) => (img.complete ? null : img.decode().catch(() => null)))).then(() => {
+  app.ready = true
   root.classList.add("is-ready")
-  root.classList.remove("is-booting")
-}, 3500)
+  layout()
+})

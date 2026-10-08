@@ -1,55 +1,40 @@
-/** Every scroll-driven number, in viewport heights. Soft pins ease over SOFT. */
-
-export const SOFT = 0.12
-
-/** Each chapter owns one scene id. Neighbors must differ so the composite can wipe between them. */
+/**
+ * The landing's chapters in page order. Each one owns a single scene, the name of the painting or
+ * treatment behind it, so no two neighbours share a backdrop. Lineage works are chapters too, so
+ * `goto("blackwell")` lands on that painting.
+ */
 export const chapters = [
-  { id: "hero", start: 0, span: 1.85, scene: "studio" },
-  { id: "lineage", start: 1.85, span: 1.35, scene: "gallery" },
-  { id: "banneker", start: 3.2, span: 1.7, scene: "almanac" },
-  { id: "johnson", start: 4.9, span: 1.7, scene: "orbit" },
-  { id: "blackwell", start: 6.6, span: 2.55, scene: "estimate", settle: 0.62 },
-  { id: "lawson", start: 9.15, span: 1.65, scene: "cartridge" },
-  { id: "reel", start: 10.8, span: 1.55, scene: "reel" },
-  { id: "method", start: 12.35, span: 1.6, scene: "steps" },
-  { id: "pricing", start: 13.95, span: 1.7, scene: "ledger" },
-  { id: "cta", start: 15.65, span: 1.45, scene: "aperture" },
+  { id: "hero", scene: "still-life", nav: null },
+  { id: "highlights", scene: "ground", nav: "highlights" },
+  { id: "method", scene: "steps", nav: "method" },
+  { id: "studio", scene: "easel", nav: "studio" },
+  { id: "agent", scene: "orb", nav: "agent" },
+  { id: "lineage", scene: "gallery", nav: "lineage" },
+  { id: "banneker", scene: "almanac", nav: "lineage" },
+  { id: "johnson", scene: "orbit", nav: "lineage" },
+  { id: "blackwell", scene: "estimate", nav: "lineage" },
+  { id: "lawson", scene: "cartridge", nav: "lineage" },
+  { id: "pricing", scene: "ledger", nav: "pricing" },
+  { id: "cta", scene: "letter", nav: null },
 ]
-
-export const end = chapters[chapters.length - 1].start + chapters[chapters.length - 1].span
-
-/** Settled frame: after the soft corner, before the exit. */
-export const states = Object.fromEntries(
-  chapters.map((chapter) => {
-    const settled =
-      chapter.settle != null
-        ? chapter.start + chapter.span * chapter.settle
-        : chapter.start + Math.min(chapter.span * 0.42, SOFT + chapter.span * 0.34)
-    return [chapter.id, Number(settled.toFixed(3))]
-  }),
-)
-
-export function smoothstep(edge0, edge1, x) {
-  const denom = edge1 - edge0
-  const span = Math.abs(denom) < 1e-5 ? (denom < 0 ? -1e-5 : 1e-5) : denom
-  const t = Math.min(1, Math.max(0, (x - edge0) / span))
-  return t * t * (3 - 2 * t)
-}
 
 export function clamp(v, a, b) {
   return Math.min(b, Math.max(a, v))
 }
 
-export function pinHold(value, start, stop, soft = SOFT) {
-  const fadeIn = start <= 0 ? 1 : smoothstep(start, start + soft, value)
-  const fadeOut = 1 - smoothstep(stop - soft, stop, value)
-  return fadeIn * fadeOut
+export function smoothstep(edge0, edge1, x) {
+  const t = clamp((x - edge0) / (edge1 - edge0 || 1e-5), 0, 1)
+  return t * t * (3 - 2 * t)
 }
 
-export function chapterAt(value) {
-  let current = chapters[0]
-  for (const chapter of chapters) {
-    if (value >= chapter.start) current = chapter
-  }
-  return current
+/** 0 when the element's top reaches the viewport top, 1 when its bottom reaches the viewport bottom. */
+export function pinProgress(rect, vh) {
+  return clamp(-rect.top / Math.max(1, rect.height - vh), 0, 1)
+}
+
+/** Which of the method's three steps is showing, and how far each later plate has been brushed in. */
+export function methodState(progress) {
+  const wipe = [1, smoothstep(0.24, 0.4, progress), smoothstep(0.58, 0.74, progress)]
+  const step = progress < 0.32 ? 0 : progress < 0.66 ? 1 : 2
+  return { step, wipe }
 }

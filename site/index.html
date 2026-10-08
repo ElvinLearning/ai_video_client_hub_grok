@@ -3,165 +3,315 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cozy Digital — AI video for businesses</title>
+    <title>The Atelier Edition · Cozy Digital AI video</title>
     <meta name="description" content="Cozy Digital makes AI video for businesses. Send a logo, product photos, and a short brief. Cozy Agent is the premium tier that helps write the brief and pick the shots." />
-    <meta name="theme-color" content="#101010" />
+    <meta name="theme-color" content="#120d0a" />
+    <meta property="og:title" content="The Atelier Edition · Cozy Digital" />
+    <meta property="og:description" content="AI video for your business. Send the brand, we make the film." />
+    <meta property="og:image" content="/media/hero.webp" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" as="image" href="/media/hero-back.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="/media/hero-mid.webp" fetchpriority="high" />
     <link rel="stylesheet" href="/css/landing.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "/vendor/three.module.js"
-        }
-      }
-    </script>
     <script>
-      (function () {
+      ;(function () {
         var q = new URLSearchParams(location.search)
         var reduce = q.get("motion") === "reduce" || (q.get("motion") !== "full" && matchMedia("(prefers-reduced-motion: reduce)").matches)
-        if (reduce) document.documentElement.classList.add("is-reduced")
-        else document.documentElement.classList.add("is-booting")
+        document.documentElement.classList.add(reduce ? "is-reduced" : "is-motion")
       })()
     </script>
   </head>
   <body>
-    <a class="skip" href="#track">Skip to the story</a>
-    <div id="spacer"></div>
-    <canvas id="gl" aria-hidden="true"></canvas>
+    <a class="skip" href="#highlights">Skip to the edition</a>
     <div class="progress" aria-hidden="true"><span></span></div>
-    <header class="nav">
-      <a class="brand" href="/">
-        <img src="/brand/cozy-digital-logo.png" alt="" width="120" height="117" />
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Cozy Digital home">
+        <img src="/brand/cozy-digital-logo.png" alt="" width="40" height="39" />
         <span class="brand-type"><span class="cozy">Cozy</span> <span class="digital">Digital</span></span>
       </a>
-      <div class="nav-actions">
+      <p class="edition-tag"><span>Editions</span> The Atelier Edition</p>
+      <div class="top-actions">
         <a class="btn btn-ghost" href="https://www.cozydigital.org/cozy-booking/">Book a call</a>
         <a class="btn btn-primary" href="/login?next=/portal">Join early access</a>
       </div>
     </header>
-    <nav class="rail" aria-label="Chapters">
-      <button type="button" data-goto="hero">Offer</button>
-      <button type="button" data-goto="blackwell">Blackwell</button>
-      <button type="button" data-goto="method">How</button>
-      <button type="button" data-goto="pricing">Pricing</button>
-      <button type="button" data-goto="cta">Start</button>
-    </nav>
-    <div class="stage" id="stage">
-      <main id="track">
-        <section class="chapter" data-chapter="hero">
-          <div class="pin-card">
-            <p class="kicker">Cozy Digital</p>
-            <h1 class="rise">AI video<br /><em>for your business.</em></h1>
-            <p class="lede">Send the logo, the product photos, and a short brief. We make the film. The work follows a longer line: people who measured the sky, the orbit, and the odds, and who built a machine that could hold a picture.</p>
-            <div class="cta-row">
-              <a class="btn btn-primary" href="/login?next=/portal">Join early access</a>
-              <a class="btn btn-ghost" href="https://www.cozydigital.org/cozy-booking/">Book a call</a>
-            </div>
-          </div>
-        </section>
 
-        <section class="chapter" data-chapter="lineage">
-          <div class="pin-card">
-            <p class="kicker">A lineage</p>
-            <h2 class="rise">Four people.<br /><em>Then a film.</em></h2>
-            <p class="body">A moving image sits downstream of measurement. This page stops with four of them: an almanac, an orbit, a sharper estimate, a cartridge you could swap. The drawings are made for this page. They are not portraits.</p>
+    <main id="main">
+      <!-- 1. Hero: a painted still life in three depths -->
+      <section class="hero" data-chapter="hero" aria-labelledby="hero-title">
+        <div class="hero-art" aria-hidden="true">
+          <div class="stage">
+          <img class="layer layer-back" src="/media/hero-back.webp" alt="" width="2400" height="1350" fetchpriority="high" />
+          <img class="layer layer-mid" src="/media/hero-mid.webp" alt="" width="2400" height="1350" fetchpriority="high" />
+          <span class="glow glow-candle" style="--gx: 26.33%; --gy: 35.99%; --gs: 7%"></span>
+          <span class="glow glow-screen" style="--gx: 35.56%; --gy: 74.46%; --gs: 16%"></span>
+          <img class="layer layer-front" src="/media/hero-front.webp" alt="" width="2400" height="1350" />
+          <img class="layer layer-flat" src="/media/hero.webp" srcset="/media/hero-sm.webp 1200w, /media/hero.webp 2400w" sizes="100vw" alt="" width="2400" height="1350" />
           </div>
-        </section>
-
-        <section class="chapter" data-chapter="banneker">
-          <div class="pin-card">
-            <p class="kicker">01 — The sky</p>
-            <h2 class="rise">Benjamin<br />Banneker</h2>
-            <p class="years">1731 — 1806</p>
-            <p class="body">Mathematician and astronomer. In 1791 he assisted Major Andrew Ellicott on the survey of the land set aside for the federal district. His calculations of the sun, moon, and planets were printed in almanacs, including the 1792 Pennsylvania, Delaware, Maryland, and Virginia almanac, issued in Baltimore by William Goddard and James Angell.</p>
-            <p class="viz-note">A star chart drawn for this page. Not a plate from his almanac.</p>
+        </div>
+        <div class="hero-copy">
+          <p class="kicker">Cozy Digital · Edition 01</p>
+          <h1 id="hero-title">
+            <span class="title-line">The Atelier</span>
+            <span class="title-line">Edition</span>
+          </h1>
+          <p class="hero-sub">AI video <em>for your business.</em></p>
+          <p class="lede">Send the logo, the product photos, and a short brief. We make the film.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="/login?next=/portal">Join early access</a>
+            <a class="btn btn-ghost" href="#studio">See what’s in the studio</a>
           </div>
-        </section>
+        </div>
+        <p class="scroll-cue" aria-hidden="true"><span></span>Scroll to enter the studio</p>
+      </section>
 
-        <section class="chapter" data-chapter="johnson">
-          <div class="pin-card">
-            <p class="kicker">02 — The path</p>
-            <h2 class="rise">Katherine<br />Johnson</h2>
-            <p class="years">1918 — 2020</p>
-            <p class="body">NASA mathematician. She calculated the trajectory for Alan Shepard’s Freedom 7 flight in May 1961, the first crewed American spaceflight. In 1962, before John Glenn’s Friendship 7 orbit, she rechecked the electronic computer by hand. NASA’s Langley biography records her memory of his reply: “If she says they’re good, then I’m ready to go.” She later calculated the trajectory for Apollo 11 in 1969.</p>
-            <p class="viz-note">Orbital paths drawn for this page. Not a mission diagram.</p>
+      <!-- Chapter bar, like an edition's table of contents -->
+      <nav class="chapters" aria-label="Edition chapters">
+        <div class="chapters-inner">
+          <a href="#highlights" data-nav="highlights">Highlights</a>
+          <a href="#method" data-nav="method">How it works</a>
+          <a href="#studio" data-nav="studio">The studio</a>
+          <a href="#agent" data-nav="agent">Cozy Agent</a>
+          <a href="#lineage" data-nav="lineage">Lineage</a>
+          <a href="#pricing" data-nav="pricing">Pricing</a>
+        </div>
+      </nav>
+
+      <!-- 2. Statement -->
+      <section class="statement brush-top" id="highlights" data-chapter="highlights">
+        <p class="kicker">The idea</p>
+        <p class="statement-text" data-words>
+          The old workshops had a master who planned the picture and a room of hands that painted it. Ours has a studio and an agent. You bring the brand. We light it, frame it, and set it moving. Every picture on this page was painted that way, with a machine holding the brush.
+        </p>
+        <ul class="numbers" aria-label="At a glance">
+          <li><strong>3</strong><span>things to send: a logo, product photos, a brief</span></li>
+          <li><strong>3</strong><span>shapes from one shoot: 9:16, 1:1, and 16:9</span></li>
+          <li><strong>1</strong><span>desk to upload, review, and ask for changes</span></li>
+        </ul>
+      </section>
+
+      <!-- 3. How it works: pinned gallery with brush wipes -->
+      <section class="method" id="method" data-chapter="method" aria-labelledby="method-title">
+        <div class="method-pin">
+          <div class="method-art" aria-hidden="true">
+            <figure class="plate is-on" data-step="0">
+              <img src="/media/brand.webp" srcset="/media/brand-sm.webp 900w, /media/brand.webp 1800w" sizes="(max-width: 860px) 100vw, 60vw" alt="" width="1800" height="1200" loading="lazy" />
+            </figure>
+            <figure class="plate" data-step="1">
+              <img src="/media/agent.webp" srcset="/media/agent-sm.webp 800w, /media/agent.webp 1600w" sizes="(max-width: 860px) 100vw, 60vw" alt="" width="1600" height="1200" loading="lazy" />
+            </figure>
+            <figure class="plate" data-step="2">
+              <img src="/media/deliver.webp" srcset="/media/deliver-sm.webp 900w, /media/deliver.webp 1800w" sizes="(max-width: 860px) 100vw, 60vw" alt="" width="1800" height="1200" loading="lazy" />
+            </figure>
           </div>
-        </section>
-
-        <section class="chapter" data-chapter="blackwell">
-          <div class="pin-card">
-            <p class="kicker">03 — The estimate</p>
-            <h2 class="rise">David<br />Blackwell</h2>
-            <p class="years">1919 — 2010</p>
-            <p class="body">Statistician and mathematician, born in Centralia, Illinois. He took every degree at the University of Illinois — B.A. 1938, M.A. 1939, Ph.D. 1941 — writing on Markov chains with Joseph L. Doob. In 1965 he became the first African American named to the National Academy of Sciences. The Rao–Blackwell theorem, which he published in 1947 after C. R. Rao’s 1945 result, sharpens an estimate by taking its conditional expectation given a sufficient statistic. The variance does not increase. He worked in probability, game theory, and Bayesian statistics, and in 1979 received the John von Neumann Theory Prize. The University of Illinois also notes his independent work on dynamic programming.</p>
-            <p class="equation"><span>δ₁(T)</span> = E[ δ₀(X) | T ]</p>
-            <p class="viz-note">The field here is a picture of that idea: scattered guesses pull toward a sufficient statistic, and a game tree opens beside them. It is not a plot of his data.</p>
-            <ul class="facts">
-              <li>National Academy of Sciences, 1965</li>
-              <li>Rao–Blackwell, 1947</li>
-              <li>von Neumann Theory Prize, 1979</li>
-            </ul>
-          </div>
-        </section>
-
-        <section class="chapter" data-chapter="lawson">
-          <div class="pin-card">
-            <p class="kicker">04 — The cartridge</p>
-            <h2 class="rise">Jerry<br />Lawson</h2>
-            <p class="years">1940 — 2011</p>
-            <p class="body">Engineer. At Fairchild he led the video-game division that brought the Channel F console to market in 1976, the first home system sold around interchangeable cartridges. A game could leave the machine. A library could exist. The cartridge hardware began as a prototype at Alpex. Lawson’s group made it something a person could buy games for.</p>
-            <p class="viz-note">An abstract cartridge and a slot. Not the Channel F, and not its marks.</p>
-          </div>
-        </section>
-
-        <section class="chapter" data-chapter="reel">
-          <div class="pin-card">
-            <p class="kicker">The film</p>
-            <h2 class="rise">Frames, then<br /><em>a film.</em></h2>
-            <p class="body">Separate pictures gather into a cut. Cozy Digital makes that cut for a business: the product in frame, the offer in the line, ready for the places you already publish.</p>
-            <p class="viz-note">A film strip drawn for this page. The frames assemble as you scroll.</p>
-          </div>
-        </section>
-
-        <section class="chapter" data-chapter="method">
-          <div class="pin-card">
+          <div class="method-copy">
             <p class="kicker">How it works</p>
-            <h2 class="rise">From brand<br /><em>to cut.</em></h2>
+            <h2 id="method-title">From brand <em>to cut.</em></h2>
             <ol class="steps">
-              <li><span>01</span><div><strong>Upload your brand.</strong> Logo, product photos, and a short brief.</div></li>
-              <li><span>02</span><div><strong>Cozy Agent shapes the brief.</strong> The premium tier asks what you sell, who it is for, and which shot matters, then queues the film.</div></li>
-              <li><span>03</span><div><strong>The studio delivers the videos.</strong> You review them from your desk.</div></li>
+              <li class="step is-on" data-step="0">
+                <span class="step-n">01</span>
+                <div>
+                  <strong>Upload your brand.</strong>
+                  <p>Logo, product photos, and a short brief. Your phone is enough.</p>
+                  <img class="step-art" src="/media/brand-sm.webp" alt="A painted desk with a written brief, product prints, a logo box, and a phone uploading files." width="900" height="600" loading="lazy" />
+                </div>
+              </li>
+              <li class="step" data-step="1">
+                <span class="step-n">02</span>
+                <div>
+                  <strong>Cozy Agent shapes the brief.</strong>
+                  <p>The premium tier asks what you sell, who it is for, and which shot matters, then queues the film.</p>
+                  <img class="step-art" src="/media/agent-sm.webp" alt="A painted glass orb glowing cyan on a brass stand, beside books and an open star chart." width="800" height="600" loading="lazy" />
+                </div>
+              </li>
+              <li class="step" data-step="2">
+                <span class="step-n">03</span>
+                <div>
+                  <strong>The studio delivers the videos.</strong>
+                  <p>Vertical, square, and wide cuts. You review them from your desk.</p>
+                  <img class="step-art" src="/media/deliver-sm.webp" alt="A painted phone and two framed screens on a velvet table, each showing a cut of the same still life." width="900" height="600" loading="lazy" />
+                </div>
+              </li>
             </ol>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="chapter" data-chapter="pricing">
-          <div class="pin-card">
-            <p class="kicker">Early access</p>
-            <h2 class="rise" id="pricing-title">Pricing, soon.</h2>
-            <p class="lede" id="pricing-lede">Early access is open. The plans show the shape of the offer. The numbers are not decided, and they are not a quote.</p>
-            <div id="pricing-grid">
-              <p class="early-flag">Early access · pricing coming soon</p>
+      <!-- 4. The studio: an edition-style grid of features -->
+      <section class="studio brush-top" id="studio" data-chapter="studio" aria-labelledby="studio-title">
+        <header class="section-head">
+          <p class="kicker">The studio</p>
+          <h2 id="studio-title">What’s on <em>the easel.</em></h2>
+          <p class="lede">What the studio makes for a business, from one shoot of your brand.</p>
+        </header>
+        <div class="cards">
+          <article class="card card-wide" data-reveal>
+            <figure><img src="/media/f-product.webp" srcset="/media/f-product-sm.webp 600w, /media/f-product.webp 1200w" sizes="(max-width: 860px) 100vw, 66vw" alt="A painted perfume bottle with a teal liquid and a cream label, lemons on a teal cloth." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Studio</p>
+              <h3>Product films</h3>
+              <p>Your bottle, box, or bag, lit like a still life and set in motion.</p>
             </div>
-            <p class="viz-note" id="pricing-note">When prices are set, they will be the same numbers Cozy Digital quotes in the client hub. You will not be handed two different figures.</p>
-          </div>
-        </section>
+          </article>
+          <article class="card" data-reveal>
+            <figure><img src="/media/f-social.webp" srcset="/media/f-social-sm.webp 600w, /media/f-social.webp 1200w" sizes="(max-width: 860px) 100vw, 33vw" alt="A painted phone standing upright between grapes and pomegranates, its screen glowing violet." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Studio</p>
+              <h3>Vertical cuts</h3>
+              <p>9:16 for Reels, TikTok, and Shorts, cut from the same shoot.</p>
+            </div>
+          </article>
+          <article class="card" data-reveal>
+            <figure><img src="/media/f-logo.webp" srcset="/media/f-logo-sm.webp 600w, /media/f-logo.webp 1200w" sizes="(max-width: 860px) 100vw, 33vw" alt="A painted envelope closed with a red wax seal marked C, a candle beside it." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Studio</p>
+              <h3>Logo reveals</h3>
+              <p>A short open or close that lands on your mark.</p>
+            </div>
+          </article>
+          <article class="card" data-reveal>
+            <figure><img src="/media/f-motion.webp" srcset="/media/f-motion-sm.webp 600w, /media/f-motion.webp 1200w" sizes="(max-width: 860px) 100vw, 33vw" alt="A painted framed picture with a strip of film curling out across the table." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">New</p>
+              <h3>Image to video</h3>
+              <p>A product photo you already own becomes a moving shot.</p>
+            </div>
+          </article>
+          <article class="card" data-reveal>
+            <figure><img src="/media/f-season.webp" srcset="/media/f-season-sm.webp 600w, /media/f-season.webp 1200w" sizes="(max-width: 860px) 100vw, 33vw" alt="Painted pomegranates and grapes on a pewter plate between two lit candles." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Studio</p>
+              <h3>Seasonal campaigns</h3>
+              <p>Holiday, launch, or sale. The same brand, dressed for the week.</p>
+            </div>
+          </article>
+          <article class="card" data-reveal>
+            <figure><img src="/media/f-memory.webp" srcset="/media/f-memory-sm.webp 600w, /media/f-memory.webp 1200w" sizes="(max-width: 860px) 100vw, 33vw" alt="A painted stack of colored books with jars labeled Logo, Tone, and Palette." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Cozy Agent</p>
+              <h3>Brand memory</h3>
+              <p>Logo, palette, and tone kept on file, so each film looks like the last one.</p>
+            </div>
+          </article>
+          <article class="card card-wide" data-reveal>
+            <figure><img src="/media/f-review.webp" srcset="/media/f-review-sm.webp 600w, /media/f-review.webp 1200w" sizes="(max-width: 860px) 100vw, 66vw" alt="Painted prints under a brass magnifying glass, a note and a teal seal beside them." width="1200" height="900" loading="lazy" /></figure>
+            <div class="card-copy">
+              <p class="tag">Desk</p>
+              <h3>A review desk</h3>
+              <p>Watch the cut, leave a note, ask for a change. Everything stays in one place.</p>
+            </div>
+          </article>
+        </div>
+      </section>
 
-        <section class="chapter" data-chapter="cta">
-          <div class="pin-card">
-            <p class="kicker">Begin</p>
-            <h2 class="rise">Send the brief.</h2>
-            <p class="lede">Join early access and upload your brand. Book a call if you want to scope the first film together.</p>
-            <div class="cta-row">
-              <a class="btn btn-primary" href="/login?next=/portal">Join early access</a>
-              <a class="btn btn-ghost" href="https://www.cozydigital.org/cozy-booking/">Book a call</a>
+      <!-- 5. Cozy Agent spotlight -->
+      <section class="agent" id="agent" data-chapter="agent" aria-labelledby="agent-title">
+        <div class="agent-art">
+          <img src="/media/agent.webp" srcset="/media/agent-sm.webp 800w, /media/agent.webp 1600w" sizes="(max-width: 860px) 100vw, 55vw" alt="A painted glass orb glowing cyan on a brass stand, in a dark study with books and a candle." width="1600" height="1200" loading="lazy" />
+        </div>
+        <div class="agent-copy">
+          <p class="kicker">Premium tier</p>
+          <h2 id="agent-title">Cozy Agent</h2>
+          <p class="lede">A studio assistant in your brand’s voice. It asks the questions a director would, then queues the film.</p>
+          <div class="chat" aria-label="An example conversation with Cozy Agent">
+            <p class="bubble agent" data-reveal>What are we selling this week?</p>
+            <p class="bubble user" data-reveal>The new teal bottle. Same scent, new glass.</p>
+            <p class="bubble agent" data-reveal>Then the glass is the hero. A slow push past the label, lemons in front, and your logo to close. Vertical first?</p>
+            <p class="bubble user" data-reveal>Vertical first.</p>
+            <p class="bubble agent queued" data-reveal><span class="dot" aria-hidden="true"></span>Queued: one 9:16 product film.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Lineage: a hanging -->
+      <section class="lineage brush-top" id="lineage" data-chapter="lineage" aria-labelledby="lineage-title">
+        <div class="lineage-pin">
+          <header class="section-head">
+            <p class="kicker">A lineage</p>
+            <h2 id="lineage-title">Four people. <em>Then a film.</em></h2>
+            <p class="lede">A moving image sits downstream of measurement: an almanac, an orbit, a sharper estimate, a cartridge you could swap. These are still lifes of their work, painted for this page. They are not portraits.</p>
+          </header>
+          <div class="hanging" tabindex="0" aria-label="Four paintings, scroll sideways">
+            <div class="hanging-track">
+              <article class="work" data-chapter="banneker">
+                <figure class="frame"><img src="/media/l-almanac.webp" srcset="/media/l-almanac-sm.webp 500w, /media/l-almanac.webp 1000w" sizes="(max-width: 860px) 80vw, 26vw" alt="A painted open book with a star chart and a table of numbers, a candle behind it." width="1000" height="1250" loading="lazy" /></figure>
+                <p class="work-n">01 — The sky</p>
+                <h3>Benjamin Banneker</h3>
+                <p class="years">1731 — 1806</p>
+                <p>Mathematician and astronomer. In 1791 he assisted Major Andrew Ellicott on the survey of the land set aside for the federal district. His calculations of the sun, moon, and planets were printed in almanacs, including the 1792 Pennsylvania, Delaware, Maryland, and Virginia almanac, issued in Baltimore by William Goddard and James Angell.</p>
+              </article>
+              <article class="work" data-chapter="johnson">
+                <figure class="frame"><img src="/media/l-orbit.webp" srcset="/media/l-orbit-sm.webp 500w, /media/l-orbit.webp 1000w" sizes="(max-width: 860px) 80vw, 26vw" alt="A painted armillary sphere of brass rings around a small teal globe." width="1000" height="1250" loading="lazy" /></figure>
+                <p class="work-n">02 — The path</p>
+                <h3>Katherine Johnson</h3>
+                <p class="years">1918 — 2020</p>
+                <p>NASA mathematician. She calculated the trajectory for Alan Shepard’s Freedom 7 flight in May 1961, the first crewed American spaceflight. In 1962, before John Glenn’s Friendship 7 orbit, she rechecked the electronic computer by hand. NASA’s Langley biography records her memory of his reply: “If she says they’re good, then I’m ready to go.” She later calculated the trajectory for Apollo 11 in 1969.</p>
+              </article>
+              <article class="work" data-chapter="blackwell">
+                <figure class="frame"><img src="/media/l-estimate.webp" srcset="/media/l-estimate-sm.webp 500w, /media/l-estimate.webp 1000w" sizes="(max-width: 860px) 80vw, 26vw" alt="Painted dice, playing cards, a stack of tokens, and a slip of paper with the Rao–Blackwell formula." width="1000" height="1250" loading="lazy" /></figure>
+                <p class="work-n">03 — The estimate</p>
+                <h3>David Blackwell</h3>
+                <p class="years">1919 — 2010</p>
+                <p>Statistician and mathematician, born in Centralia, Illinois. He took every degree at the University of Illinois — B.A. 1938, M.A. 1939, Ph.D. 1941. In 1965 he became the first African American named to the National Academy of Sciences. The Rao–Blackwell theorem, published in 1947, sharpens an estimate by taking its conditional expectation given a sufficient statistic. The variance does not increase.</p>
+                <p class="equation"><span>δ₁(T)</span> = E[ δ₀(X) | T ]</p>
+              </article>
+              <article class="work" data-chapter="lawson">
+                <figure class="frame"><img src="/media/l-cartridge.webp" srcset="/media/l-cartridge-sm.webp 500w, /media/l-cartridge.webp 1000w" sizes="(max-width: 860px) 80vw, 26vw" alt="A painted game cartridge with a striped label in front of an abstract console with a slot." width="1000" height="1250" loading="lazy" /></figure>
+                <p class="work-n">04 — The cartridge</p>
+                <h3>Jerry Lawson</h3>
+                <p class="years">1940 — 2011</p>
+                <p>Engineer. At Fairchild he led the video-game division that brought the Channel F console to market in 1976, the first home system sold around interchangeable cartridges. A game could leave the machine. A library could exist. The painting shows an abstract cartridge and slot, not the Channel F and not its marks.</p>
+              </article>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <footer class="credits">
+      <!-- 7. Pricing -->
+      <section class="pricing" id="pricing" data-chapter="pricing" aria-labelledby="pricing-title">
+        <header class="section-head">
+          <p class="kicker">Early access</p>
+          <h2 id="pricing-title">Pricing, soon.</h2>
+          <p class="lede" id="pricing-lede">Early access is open. The plans show the shape of the offer. The numbers are not decided, and they are not a quote.</p>
+        </header>
+        <div id="pricing-grid" class="plans">
+          <p class="early-flag">Early access · pricing coming soon</p>
+        </div>
+        <p class="note" id="pricing-note">When prices are set, they will be the same numbers Cozy Digital quotes in the client hub. You will not be handed two different figures.</p>
+      </section>
+
+      <!-- 8. Closing plate -->
+      <section class="closing" id="start" data-chapter="cta" aria-labelledby="cta-title">
+        <div class="closing-art" aria-hidden="true">
+          <div class="stage">
+          <img class="layer layer-back" src="/media/cta-back.webp" alt="" width="2400" height="1100" loading="lazy" />
+          <img class="layer layer-mid" src="/media/cta-mid.webp" alt="" width="2400" height="1100" loading="lazy" />
+          <img class="layer layer-front" src="/media/cta-front.webp" alt="" width="2400" height="1100" loading="lazy" />
+          <img class="layer layer-flat" src="/media/cta.webp" srcset="/media/cta-sm.webp 1200w, /media/cta.webp 2400w" sizes="100vw" alt="" width="2400" height="1100" loading="lazy" />
+          </div>
+        </div>
+        <div class="closing-copy">
+          <p class="kicker">Begin</p>
+          <h2 id="cta-title">Send the brief.</h2>
+          <p class="lede">Join early access and upload your brand. Book a call if you want to scope the first film together.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="/login?next=/portal">Join early access</a>
+            <a class="btn btn-ghost" href="https://www.cozydigital.org/cozy-booking/">Book a call</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="credits">
+      <div class="credits-inner">
+        <div>
+          <a class="brand" href="/"><img src="/brand/cozy-digital-logo.png" alt="" width="32" height="31" /><span class="brand-type"><span class="cozy">Cozy</span> <span class="digital">Digital</span></span></a>
+          <p>The Atelier Edition. AI video for businesses.</p>
+        </div>
+        <div>
           <h2>Notes</h2>
-          <p>No portraits are used. Nothing on this page is a generated likeness of a real person.</p>
+          <p>Every picture on this page is a still life rendered in 3D and painted over by a filter, made for this page. No portraits are used, and nothing here is a likeness of a real person.</p>
           <ul>
             <li>David Blackwell — University of Illinois Department of Mathematics, “David Blackwell”; National Academy of Sciences, elected 1965; Blackwell, “Conditional Expectation and Unbiased Sequential Estimation,” Annals of Mathematical Statistics, 1947.</li>
             <li>Katherine Johnson — NASA Langley, “Katherine Johnson Biography.”</li>
@@ -170,9 +320,9 @@
           </ul>
           <p>The wordmark follows the mark on <a href="https://www.cozydigital.org">cozydigital.org</a>. Type is Fraunces, Outfit, and IBM Plex Mono, used under the SIL Open Font License. Files in <a href="/fonts/OFL-fraunces.txt">/fonts</a>.</p>
           <p>Pricing on this page is a placeholder. It is not a quote, and it is not a second offer beside the client hub.</p>
-        </footer>
-      </main>
-    </div>
+        </div>
+      </div>
+    </footer>
     <p id="hud" hidden></p>
     <script type="module" src="/js/main.js"></script>
   </body>

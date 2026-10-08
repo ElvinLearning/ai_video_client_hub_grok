@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Paint</title>
+    <style>
+      @font-face { font-family: "Fraunces"; src: url("/site/fonts/fraunces-600.woff2") format("woff2"); font-weight: 600; }
+      @font-face { font-family: "Fraunces"; src: url("/site/fonts/fraunces-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; }
+      @font-face { font-family: "Outfit"; src: url("/site/fonts/outfit-500.woff2") format("woff2"); font-weight: 500; }
+      @font-face { font-family: "Outfit"; src: url("/site/fonts/outfit-600.woff2") format("woff2"); font-weight: 600; }
+      body { margin: 0; background: #111; }
+      canvas { max-width: 100%; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/node_modules/three/build/three.module.js",
+          "three/addons/": "/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
