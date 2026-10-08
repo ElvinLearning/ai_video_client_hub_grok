@@ -20,7 +20,7 @@ const gpu = await page.evaluate(() => {
   return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "unknown"
 })
 await page.waitForFunction(() => window.__app?.ready, null, { timeout: 15000 })
-const states = ["intro", "hero", "blackwell", "pricing", "cta", "johnson", "lawson"]
+const states = ["hero", "lineage", "banneker", "johnson", "blackwell", "lawson", "reel", "method", "pricing", "cta"]
 for (const name of states) {
   await page.evaluate((state) => window.__app.goto(state, true), name)
   await page.waitForFunction((state) => Math.abs(window.__app.scroll.value - window.__app.states[state]) < 0.02, name)

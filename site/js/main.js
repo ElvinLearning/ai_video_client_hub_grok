@@ -99,7 +99,8 @@ const app = {
   layout,
   goto,
   fps: 0,
-  active: "intro",
+  active: "hero",
+  warmMs: graphics?.warmMs ?? 0,
   bench: null,
   get scroll() {
     return { target, value }
@@ -128,22 +129,9 @@ function frame(now) {
       window.scrollTo(0, eased * end * window.innerHeight)
       target = eased * end
     } else {
-      const arrive = 8000
-      const hold = 4500
-      const rest = 14000
-      const holdAt = states.blackwell
-      let next = holdAt
-      if (elapsed < arrive) {
-        const u = elapsed / arrive
-        const eased = u * u * (3 - 2 * u)
-        next = eased * holdAt
-      } else if (elapsed < arrive + hold) {
-        next = holdAt
-      } else {
-        const u = Math.min(1, (elapsed - arrive - hold) / rest)
-        const eased = u * u * (3 - 2 * u)
-        next = holdAt + eased * (states.cta - holdAt)
-      }
+      const duration = 28000
+      const t = Math.min(1, elapsed / duration)
+      const next = t * states.cta
       window.scrollTo(0, next * window.innerHeight)
       target = next
     }

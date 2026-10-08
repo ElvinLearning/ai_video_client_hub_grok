@@ -53,26 +53,70 @@ ${SAFE}
 void main() {
   vec2 uv = vUv;
   if (uSimple > 0.5) {
-    vec3 col = vec3(0.012, 0.013, 0.015);
-    col += uA * uv.y * 0.18;
-    col += uB * (1.0 - uv.x) * 0.1;
+    vec3 col = vec3(0.008, 0.009, 0.011);
+    col += uA * uv.x * uv.x * 0.035;
+    col += uB * uv.x * 0.02;
     gl_FragColor = vec4(col, 1.0);
     return;
   }
-  float n = fbm(uv * vec2(2.4, 1.6) + uTime * 0.015);
-  float veil = sstep(0.25, 0.85, n);
+  float n = fbm(uv * vec2(2.2, 1.5) + uTime * 0.012);
+  float veil = sstep(0.28, 0.82, n);
   vec3 col = vec3(0.012, 0.014, 0.016);
-  col += uA * veil * 0.9;
-  col += uB * pow(fbm(uv * 4.0 - n), 2.2) * 1.15;
-  float grid = 0.0;
+  col += uA * veil * uv.x * 0.55;
+  col += uB * pow(fbm(uv * 3.2 - n), 2.0) * uv.x * 0.45;
   if (uGrid > 0.01) {
-    vec2 g = abs(fract(uv * vec2(18.0, 10.0)) - 0.5);
-    grid = sstep(0.48, 0.5, max(g.x, g.y));
-    col += uA * grid * uGrid * 0.18;
+    vec2 g = abs(fract(uv * vec2(22.0, 14.0)) - 0.5);
+    float grid = sstep(0.48, 0.5, max(g.x, g.y));
+    col += uA * grid * uGrid * 0.12;
   }
-  float vig = sstep(1.15, 0.25, length(uv - 0.5));
-  col *= mix(0.45, 1.0, vig);
+  float vig = sstep(1.15, 0.2, length((uv - vec2(0.62, 0.5)) * vec2(1.1, 1.0)));
+  col *= mix(0.55, 1.0, vig);
   gl_FragColor = vec4(col, 1.0);
+}
+`
+
+const MESH_VERT = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const LAMP_FRAG = /* glsl */ `
+precision highp float;
+varying vec2 vUv;
+uniform vec3 uColor;
+uniform float uAlpha;
+${SAFE}
+void main() {
+  float d = length(vUv - 0.5) * 2.0;
+  float a = sstep(1.05, 0.05, d);
+  a *= a;
+  gl_FragColor = vec4(uColor, a * uAlpha);
+}
+`
+
+const GRID_FRAG = /* glsl */ `
+precision highp float;
+varying vec2 vUv;
+uniform float uReveal;
+${SAFE}
+void main() {
+  vec2 g = vUv * vec2(16.0, 11.0);
+  vec2 f = fract(g);
+  vec2 id = floor(g);
+  float edge = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
+  float grid = 1.0 - sstep(0.045, 0.09, edge);
+  float h = hash(id);
+  float lit = sstep(h * 0.85, h * 0.85 + 0.08, uReveal);
+  vec3 cyan = vec3(0.333, 0.933, 0.941);
+  vec3 blue = vec3(0.490, 0.694, 0.953);
+  vec3 magenta = vec3(0.706, 0.616, 0.941);
+  vec3 ink = vec3(0.04, 0.055, 0.06);
+  vec3 col = mix(ink, mix(cyan, mix(blue, magenta, h), h), lit);
+  col = mix(col, vec3(0.82, 0.93, 0.94), grid * 0.45);
+  gl_FragColor = vec4(col, 0.96);
 }
 `
 
@@ -89,11 +133,11 @@ void main() {
   vSeed = aSeed;
   vec3 p = mix(position, aCond, clamp(uCollapse, 0.0, 1.0));
   p.x += uShift;
-  p.x += sin(uTime * 0.32 + aSeed * 12.0) * 0.045 * uMotion;
+  p.y += sin(uTime * 0.25 + aSeed * 10.0) * 0.02 * uMotion;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   gl_Position = projectionMatrix * mv;
-  float depth = max(2.2, -mv.z);
-  gl_PointSize = min(16.0, uSize * (70.0 / depth));
+  float depth = max(2.4, -mv.z);
+  gl_PointSize = min(11.0, uSize * (64.0 / depth));
 }
 `
 
@@ -105,12 +149,32 @@ void main() {
   vec2 p = gl_PointCoord - vec2(0.5);
   float d = length(p);
   if (d > 0.5) discard;
-  float a = sstep(0.5, 0.02, d);
+  float a = sstep(0.5, 0.05, d);
   vec3 cyan = vec3(0.333, 0.933, 0.941);
   vec3 blue = vec3(0.490, 0.694, 0.953);
   vec3 magenta = vec3(0.706, 0.616, 0.941);
-  vec3 col = mix(cyan, mix(blue, magenta, vSeed), sstep(0.0, 1.0, vSeed));
-  gl_FragColor = vec4(col * a, a * 0.85);
+  vec3 col = mix(cyan, mix(blue, magenta, vSeed), vSeed);
+  gl_FragColor = vec4(col * a, a * 0.9);
+}
+`
+
+const LINE_VERT = /* glsl */ `
+attribute float aReveal;
+uniform float uReveal;
+varying float vOn;
+void main() {
+  vOn = step(aReveal, uReveal);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const LINE_FRAG = /* glsl */ `
+precision highp float;
+varying float vOn;
+uniform vec3 uColor;
+void main() {
+  if (vOn < 0.5) discard;
+  gl_FragColor = vec4(uColor, 0.95);
 }
 `
 
@@ -125,7 +189,7 @@ void main() {
   vec3 a = texture2D(tA, vUv).rgb;
   vec3 b = texture2D(tB, vUv).rgb;
   float brush = fbm(vec2(vUv.x * 3.2, vUv.y * 1.8 + uBlend * 2.0));
-  float edge = sstep(uBlend - 0.12, uBlend + 0.12, vUv.x + (brush - 0.5) * 0.28);
+  float edge = sstep(uBlend - 0.14, uBlend + 0.14, vUv.x + (brush - 0.5) * 0.28);
   float wipe = uBlend <= 0.001 ? 0.0 : edge;
   gl_FragColor = vec4(mix(a, b, wipe), 1.0);
 }
@@ -139,7 +203,7 @@ ${SAFE}
 void main() {
   vec3 c = texture2D(tMap, vUv).rgb;
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  float t = sstep(0.42, 1.05, l);
+  float t = sstep(0.45, 1.05, l);
   gl_FragColor = vec4(c * t, 1.0);
 }
 `
@@ -183,53 +247,6 @@ void main() {
 }
 `
 
-const SLAB_FRAG = /* glsl */ `
-precision highp float;
-varying vec2 vUv;
-uniform vec3 uColor;
-${SAFE}
-void main() {
-  vec2 p = vUv * 2.0 - 1.0;
-  vec2 b = vec2(0.92, 0.78);
-  float r = 0.18;
-  vec2 q = abs(p) - b + r;
-  float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-  if (dist > 0.0) discard;
-  float rim = sstep(0.12, 0.0, abs(dist));
-  vec3 base = vec3(0.05, 0.07, 0.08);
-  gl_FragColor = vec4(mix(base, uColor * 1.7, rim), 1.0);
-}
-`
-
-const SLAB_VERT = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`
-
-const LINE_VERT = /* glsl */ `
-attribute float aReveal;
-uniform float uReveal;
-varying float vOn;
-void main() {
-  vOn = step(aReveal, uReveal);
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  gl_Position = projectionMatrix * mv;
-}
-`
-
-const LINE_FRAG = /* glsl */ `
-precision highp float;
-varying float vOn;
-uniform vec3 uColor;
-void main() {
-  if (vOn < 0.5) discard;
-  gl_FragColor = vec4(uColor, 0.9);
-}
-`
-
 function fullscreenMaterial(fragment, uniforms) {
   return new THREE.ShaderMaterial({
     vertexShader: PLATE_VERT,
@@ -256,29 +273,132 @@ function makePlate(colorA, colorB, grid) {
   return { scene, camera, uniforms }
 }
 
-function makePoints(count, box, collapse) {
-  const positions = new Float32Array(count * 3)
-  const cond = new Float32Array(count * 3)
-  const seeds = new Float32Array(count)
-  for (let i = 0; i < count; i += 1) {
-    const x = Math.random() * box[0]
-    const y = (Math.random() - 0.5) * box[1]
-    const z = (Math.random() - 0.5) * box[2]
-    positions.set([x, y, z], i * 3)
-    if (collapse) cond.set([1.15 + x * 0.22, y * 0.62, Math.sin(y * 1.4) * 0.18], i * 3)
-    else cond.set([x, y, z], i * 3)
-    seeds[i] = Math.random()
+function lamp(color, alpha) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.8, 1.8),
+    new THREE.ShaderMaterial({
+      vertexShader: MESH_VERT,
+      fragmentShader: LAMP_FRAG,
+      uniforms: {
+        uColor: { value: new THREE.Color(color) },
+        uAlpha: { value: alpha },
+      },
+      transparent: true,
+      depthWrite: false,
+    }),
+  )
+  return mesh
+}
+
+function frameRect(w, h, color, opacity = 0.9) {
+  const pts = [
+    [-w / 2, -h / 2, 0],
+    [w / 2, -h / 2, 0],
+    [w / 2, -h / 2, 0],
+    [w / 2, h / 2, 0],
+    [w / 2, h / 2, 0],
+    [-w / 2, h / 2, 0],
+    [-w / 2, h / 2, 0],
+    [-w / 2, -h / 2, 0],
+  ]
+  return new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2]))),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity }),
+  )
+}
+
+function frameMesh(w, h, color, t = 0.045) {
+  const group = new THREE.Group()
+  const mat = new THREE.MeshBasicMaterial({ color })
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(w + t, t), mat)
+  const bot = new THREE.Mesh(new THREE.PlaneGeometry(w + t, t), mat)
+  const left = new THREE.Mesh(new THREE.PlaneGeometry(t, h), mat)
+  const right = new THREE.Mesh(new THREE.PlaneGeometry(t, h), mat)
+  top.position.y = h / 2
+  bot.position.y = -h / 2
+  left.position.x = -w / 2
+  right.position.x = w / 2
+  group.add(top, bot, left, right)
+  return group
+}
+
+function painting(w, h, fill, stroke) {
+  const group = new THREE.Group()
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ color: fill, transparent: true, opacity: 0.92, depthWrite: false }),
+  )
+  group.add(board)
+  group.add(frameMesh(w, h, stroke, Math.max(0.035, Math.min(w, h) * 0.045)))
+  return group
+}
+
+function ellipseLine(rx, ry, tilt, color) {
+  const pts = []
+  const segments = 80
+  for (let i = 0; i <= segments; i += 1) {
+    const a = (i / segments) * Math.PI * 2
+    const p = new THREE.Vector3(Math.cos(a) * rx, Math.sin(a) * ry, 0)
+    p.applyAxisAngle(new THREE.Vector3(1, 0.15, 0), tilt)
+    pts.push(p)
+  }
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.9 }),
+  )
+}
+
+function sampleEllipse(rx, ry, tilt, angle) {
+  const p = new THREE.Vector3(Math.cos(angle) * rx, Math.sin(angle) * ry, 0)
+  p.applyAxisAngle(new THREE.Vector3(1, 0.15, 0), tilt)
+  return p
+}
+
+function ring(rx, ry, color) {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.78, 1, 72),
+    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
+  )
+  mesh.scale.set(rx, ry, 1)
+  return mesh
+}
+
+function stageFloor(scene) {
+  const arc = ellipseLine(3.4, 0.42, 0, 0x24575c)
+  arc.position.set(1.3, -1.45, -0.4)
+  arc.material.opacity = 0.35
+  scene.add(arc)
+}
+
+function look(camera, progress, from, to, at) {
+  camera.position.lerpVectors(from, to, clamp(progress, 0, 1))
+  camera.position.z *= 0.78
+  camera.lookAt(at)
+}
+
+function curtain(cols, rows) {
+  const positions = []
+  const cond = []
+  const seeds = []
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      const px = x * 0.11
+      const py = (y - (rows - 1) / 2) * 0.115
+      positions.push(px, py, (x % 4) * 0.05)
+      cond.push(1.15, py * 0.22, 0.02)
+      seeds.push(((x * 17 + y * 5) % 97) / 97)
+    }
   }
   const geo = new THREE.BufferGeometry()
-  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3))
-  geo.setAttribute("aCond", new THREE.BufferAttribute(cond, 3))
-  geo.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1))
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3))
+  geo.setAttribute("aCond", new THREE.Float32BufferAttribute(cond, 3))
+  geo.setAttribute("aSeed", new THREE.Float32BufferAttribute(seeds, 1))
   const uniforms = {
     uTime: { value: 0 },
     uCollapse: { value: 0 },
-    uSize: { value: collapse ? 5.4 : 6.4 },
+    uSize: { value: 5.2 },
     uMotion: { value: 1 },
-    uShift: { value: 0.85 },
+    uShift: { value: 0.35 },
   }
   const mat = new THREE.ShaderMaterial({
     uniforms,
@@ -291,80 +411,27 @@ function makePoints(count, box, collapse) {
   return { points: new THREE.Points(geo, mat), uniforms }
 }
 
-function band(radiusX, radiusY, color, rotation = 0) {
-  const mesh = new THREE.Mesh(
-    new THREE.RingGeometry(0.9, 1, 96),
-    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.95 }),
-  )
-  mesh.scale.set(radiusX, radiusY, 1)
-  mesh.rotation.z = rotation
-  return mesh
-}
-
-function ellipseLine(rx, ry, rot, color) {
-  return band(rx, ry, color, rot)
-}
-
-function sampleEllipse(rx, ry, rot, t) {
-  const x = Math.cos(t) * rx
-  const y = Math.sin(t) * ry
-  return new THREE.Vector3(x * Math.cos(rot) - y * Math.sin(rot), x * Math.sin(rot) + y * Math.cos(rot), 0)
-}
-
-function glowDot() {
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3))
-  geo.setAttribute("aCond", new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3))
-  geo.setAttribute("aSeed", new THREE.BufferAttribute(new Float32Array([0.15]), 1))
-  const uniforms = { uTime: { value: 0 }, uCollapse: { value: 0 }, uSize: { value: 7 }, uMotion: { value: 0 } }
-  const mat = new THREE.ShaderMaterial({
-    uniforms,
-    vertexShader: POINT_VERT,
-    fragmentShader: POINT_FRAG,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  })
-  const points = new THREE.Points(geo, mat)
-  return { points, uniforms }
-}
-
-function slab(color) {
-  const uniforms = { uColor: { value: color.clone() } }
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.1, 1.6),
-    new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: SLAB_VERT,
-      fragmentShader: SLAB_FRAG,
-      transparent: true,
-      side: THREE.DoubleSide,
-    }),
-  )
-  return mesh
-}
-
 function buildTree() {
   const positions = []
   const reveal = []
-  const maxDepth = 5
-  function branch(x, y, depth) {
+  const maxDepth = 4
+  function branch(x, y, depth, spread) {
     if (depth > maxDepth) return
-    const y2 = y + 0.48
-    const spread = 1.35 / (depth + 1)
+    const y2 = y + 0.46
+    const next = spread * 0.58
     for (const side of [-1, 1]) {
       const x2 = x + side * spread
       positions.push(x, y, 0, x2, y2, 0)
       const t = depth / maxDepth
       reveal.push(t, t)
-      branch(x2, y2, depth + 1)
+      branch(x2, y2, depth + 1, next)
     }
   }
-  branch(0, -1.35, 0)
+  branch(0, -1.2, 0, 0.62)
   const geo = new THREE.BufferGeometry()
   geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3))
   geo.setAttribute("aReveal", new THREE.Float32BufferAttribute(reveal, 1))
-  const uniforms = { uReveal: { value: 1 }, uColor: { value: new THREE.Color("#b49df0") } }
+  const uniforms = { uReveal: { value: 0 }, uColor: { value: new THREE.Color("#b49df0") } }
   const mat = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: LINE_VERT,
@@ -372,27 +439,6 @@ function buildTree() {
     transparent: true,
   })
   return { line: new THREE.LineSegments(geo, mat), uniforms }
-}
-
-function cameraPath(camera, points, t, look) {
-  const n = points.length
-  const x = clamp(t, 0, 1) * (n - 1)
-  const i = Math.min(n - 2, Math.floor(x))
-  const u = x - i
-  const p0 = points[Math.max(0, i - 1)]
-  const p1 = points[i]
-  const p2 = points[Math.min(n - 1, i + 1)]
-  const p3 = points[Math.min(n - 1, i + 2)]
-  const uu = u * u
-  const uuu = uu * u
-  const q = p0
-    .clone()
-    .multiplyScalar(-0.5 * uuu + uu - 0.5 * u)
-    .add(p1.clone().multiplyScalar(1.5 * uuu - 2.5 * uu + 1))
-    .add(p2.clone().multiplyScalar(-1.5 * uuu + 2 * uu + 0.5 * u))
-    .add(p3.clone().multiplyScalar(0.5 * uuu - 0.5 * uu))
-  camera.position.copy(q)
-  camera.lookAt(look)
 }
 
 function makePass(fragment, uniforms) {
@@ -431,234 +477,474 @@ export function createGraphics(canvas) {
   const software = /SwiftShader|llvmpipe|softpipe|Basic Render/i.test(rendererName || "")
 
   const disabled = new Set()
-  const count = software ? 640 : window.innerWidth < 800 ? 1200 : 1800
   const scenes = {}
 
   function addScene(id, build) {
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40)
+    const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 40)
     const api = build(scene, camera)
     scenes[id] = { scene, camera, ...api }
   }
 
-  addScene("field", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.71, 0.62, 0.94), 0)
-    const field = makePoints(count, [4.2, 3.6, 2.4], false)
-    scene.add(field.points)
-    const path = [
-      new THREE.Vector3(-1.35, 0.12, 4.3),
-      new THREE.Vector3(-1.05, 0.22, 3.7),
-      new THREE.Vector3(-0.7, 0.08, 3.3),
-    ]
+  addScene("studio", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.49, 0.69, 0.95), 0)
+    const glow = lamp("#55eef0", 0.1)
+    glow.position.set(1.7, 0.1, -0.8)
+    scene.add(glow)
+    const lens = new THREE.Group()
+    lens.add(ring(1.7, 1.7, 0x55eef0))
+    lens.add(ring(1.15, 1.15, 0x7db1f3))
+    lens.position.set(1.75, 0.05, 0)
+    scene.add(lens)
+    const frames = [0, 1, 2].map((index) => {
+      const card = painting(1.15, 0.62, index === 1 ? 0x12383c : 0x101820, index === 2 ? 0xb49df0 : 0x55eef0)
+      card.position.set(1.75, 0.55 - index * 0.42, 0.25 + index * 0.08)
+      scene.add(card)
+      return card
+    })
+    stageFloor(scene)
     return {
-      update(progress, time, motion) {
+      update(progress, time) {
         plate.uniforms.uTime.value = time
-        field.uniforms.uTime.value = time
-        field.uniforms.uMotion.value = motion
-        cameraPath(scenes.field.camera, path, smoothstep(0, 1, progress), new THREE.Vector3(0.85, 0, 0))
+        lens.rotation.z = time * 0.05
+        frames.forEach((card, index) => {
+          const lift = smoothstep(0.05 + index * 0.08, 0.55, progress)
+          card.position.y = 0.15 - index * 0.38 + lift * 0.35
+          card.position.z = 0.15 + lift * 0.2
+        })
+        look(
+          scenes.studio.camera,
+          progress,
+          new THREE.Vector3(-1.15, 0.12, 4.6),
+          new THREE.Vector3(-0.85, 0.08, 3.9),
+          new THREE.Vector3(1.6, 0.05, 0),
+        )
       },
       plate,
     }
   })
 
-  addScene("banneker", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.2, 0.55, 0.85), new THREE.Vector3(0.33, 0.93, 0.94), 0.35)
-    const group = new THREE.Group()
-    ;[1.35, 2.05, 2.75].forEach((radius, index) => {
-      group.add(band(radius, radius * 0.62, index === 2 ? 0x55eef0 : 0x7db1f3))
+  addScene("gallery", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.49, 0.69, 0.95), new THREE.Vector3(0.71, 0.62, 0.94), 0)
+    const glow = lamp("#7db1f3", 0.09)
+    glow.position.set(2.2, 0.4, -1.2)
+    scene.add(glow)
+    const frames = [
+      [1.15, 0.15, 0.4, 1.15, 1.45, 0x102226, 0x55eef0],
+      [1.85, 0.35, -0.15, 0.95, 1.2, 0x14182c, 0x7db1f3],
+      [2.45, -0.05, -0.7, 0.8, 1.0, 0x1a1428, 0xb49df0],
+      [3.05, 0.25, -1.25, 0.62, 0.8, 0x10161c, 0x55eef0],
+    ].map((spec) => {
+      const card = painting(spec[3], spec[4], spec[5], spec[6])
+      card.position.set(spec[0], spec[1], spec[2])
+      scene.add(card)
+      return card
     })
+    const beam = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.08, 2.4),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.35, depthWrite: false }),
+    )
+    scene.add(beam)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        beam.position.set(1.1 + progress * 2.1, 0.15, 0.6)
+        frames.forEach((card, index) => {
+          card.rotation.y = -0.18 + progress * 0.08
+          card.position.x += 0
+          void index
+        })
+        look(
+          scenes.gallery.camera,
+          progress,
+          new THREE.Vector3(-0.4, 0.2, 5.2),
+          new THREE.Vector3(0.15, 0.12, 4.4),
+          new THREE.Vector3(2.0, 0.15, -0.3),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("almanac", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.2, 0.45, 0.85), new THREE.Vector3(0.33, 0.93, 0.94), 0.55)
+    const glow = lamp("#7db1f3", 0.09)
+    glow.position.set(1.6, 0.2, -0.9)
+    scene.add(glow)
+    const chart = new THREE.Group()
+    chart.add(ring(2.15, 2.15, 0x7db1f3))
+    chart.add(ring(1.45, 1.45, 0x55eef0))
+    chart.add(ring(0.72, 0.72, 0xb49df0))
     for (let i = 0; i < 12; i += 1) {
       const a = (i / 12) * Math.PI * 2
-      const inner = 0.4
-      const outer = 2.45
+      const inner = i % 3 === 0 ? 0.55 : 1.35
       const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(Math.cos(a) * inner, Math.sin(a) * inner * 0.62, 0),
-        new THREE.Vector3(Math.cos(a) * outer, Math.sin(a) * outer * 0.62, 0),
+        new THREE.Vector3(Math.cos(a) * inner, Math.sin(a) * inner, 0),
+        new THREE.Vector3(Math.cos(a) * 2.25, Math.sin(a) * 2.25, 0),
       ])
-      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xb49df0, transparent: true, opacity: 0.35 })))
+      chart.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xb49df0, transparent: true, opacity: 0.45 })))
     }
-    const moon = band(0.28, 0.28, 0x55eef0)
-    group.add(moon)
-    scene.add(group)
-    return {
-      update(progress, time, motion) {
-        plate.uniforms.uTime.value = time
-        group.rotation.z = progress * 0.35
-        const ang = progress * Math.PI * 2
-        moon.position.set(Math.cos(ang) * 1.7, Math.sin(ang) * 1.05, 0.05)
-        scenes.banneker.camera.position.set(-1.35, 0.15, 4.2 - progress * 0.25)
-        scenes.banneker.camera.lookAt(0.85, 0, 0)
-        void motion
-      },
-      plate,
-    }
-  })
-
-  addScene("johnson", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.15, 0.45, 0.9), new THREE.Vector3(0.33, 0.93, 0.94), 0)
-    const orbits = new THREE.Group()
-    const specs = [
-      [2.7, 1.35, 0.35, 0x55eef0],
-      [1.9, 1.05, -0.45, 0x7db1f3],
-      [1.15, 0.7, 0.15, 0xb49df0],
-    ]
-    for (const spec of specs) orbits.add(ellipseLine(spec[0], spec[1], spec[2], spec[3]))
-    const craft = glowDot()
-    scene.add(orbits)
-    scene.add(craft.points)
-    const earth = band(0.42, 0.42, 0xe7f2f2)
-    scene.add(earth)
-    return {
-      update(progress, time) {
-        plate.uniforms.uTime.value = time
-        const spec = specs[0]
-        const p = sampleEllipse(spec[0], spec[1], spec[2], progress * Math.PI * 2 * 0.85 + 0.4)
-        craft.points.position.copy(p)
-        craft.uniforms.uTime.value = time
-        scenes.johnson.camera.position.set(-1.2 + progress * 0.15, 0.25, 4.3 - progress * 0.3)
-        scenes.johnson.camera.lookAt(0.7, 0, 0)
-      },
-      plate,
-    }
-  })
-
-  addScene("blackwell", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.71, 0.62, 0.94), new THREE.Vector3(0.33, 0.93, 0.94), 0)
-    const field = makePoints(count, [2.4, 3.2, 1.6], true)
-    field.points.position.x = 0.35
-    scene.add(field.points)
-    const tree = buildTree()
-    tree.line.position.set(2.05, -0.2, 0.2)
-    tree.line.scale.set(0.85, 0.85, 1)
-    scene.add(tree.line)
-    const path = [
-      new THREE.Vector3(-1.4, 0.08, 4.2),
-      new THREE.Vector3(-1.05, 0.16, 3.6),
-      new THREE.Vector3(-0.75, 0.04, 3.2),
-    ]
-    return {
-      update(progress, time, motion) {
-        plate.uniforms.uTime.value = time
-        field.uniforms.uTime.value = time
-        field.uniforms.uMotion.value = motion
-        field.uniforms.uCollapse.value = smoothstep(0.08, 0.62, progress)
-        tree.uniforms.uReveal.value = smoothstep(0.02, 0.48, progress)
-        cameraPath(scenes.blackwell.camera, path, smoothstep(0, 1, progress), new THREE.Vector3(1.7, 0, 0))
-      },
-      plate,
-    }
-  })
-
-  addScene("lawson", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.2, 0.35, 0.55), 0)
-    const colors = [new THREE.Color("#55eef0"), new THREE.Color("#7db1f3"), new THREE.Color("#b49df0")]
-    const cards = colors.map((color, index) => {
-      const mesh = slab(color)
-      mesh.position.set(-1.8 + index * 0.35, 0.1 * (index - 1), -index * 0.08)
-      scene.add(mesh)
-      return mesh
-    })
-    const frame = new THREE.LineSegments(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0.7, -1.05, 0),
-        new THREE.Vector3(1.7, -1.05, 0),
-        new THREE.Vector3(1.7, -1.05, 0),
-        new THREE.Vector3(1.7, 1.05, 0),
-        new THREE.Vector3(1.7, 1.05, 0),
-        new THREE.Vector3(0.7, 1.05, 0),
-      ]),
-      new THREE.LineBasicMaterial({ color: 0xe7f2f2, transparent: true, opacity: 0.7 }),
-    )
-    scene.add(frame)
-    return {
-      update(progress, time) {
-        plate.uniforms.uTime.value = time
-        const slide = smoothstep(0.08, 0.78, progress) * 2.15
-        cards.forEach((mesh, index) => {
-          mesh.position.x = -1.9 + index * 0.28 + slide
-        })
-        scenes.lawson.camera.position.set(-0.7, 0.1, 3.7)
-        scenes.lawson.camera.lookAt(0.85, 0, 0)
-      },
-      plate,
-    }
-  })
-
-  addScene("dean", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.49, 0.69, 0.95), 1)
-    const pts = []
-    for (let y = -1.4; y <= 1.4; y += 0.4) {
-      pts.push(new THREE.Vector3(-2.6, y, 0), new THREE.Vector3(2.6, y, 0))
-    }
-    for (let x = -2.4; x <= 2.4; x += 0.8) {
-      pts.push(new THREE.Vector3(x, -1.5, 0), new THREE.Vector3(x, 1.5, 0))
-    }
-    scene.add(
-      new THREE.LineSegments(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: 0x7db1f3, transparent: true, opacity: 0.45 }),
-      ),
-    )
-    const packet = glowDot()
-    packet.uniforms.uSize.value = 9
-    scene.add(packet.points)
-    const bars = [0x55eef0, 0x7db1f3, 0xb49df0].map((color, index) => {
-      const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.08, 1.4),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }),
+    const stars = []
+    for (let i = 0; i < 18; i += 1) {
+      const dot = new THREE.Mesh(
+        new THREE.CircleGeometry(0.035, 8),
+        new THREE.MeshBasicMaterial({ color: i % 2 ? 0x55eef0 : 0xe7f3f3 }),
       )
-      mesh.position.set(1.8, -0.2 + index * 0.02, 0.1)
-      scene.add(mesh)
-      return mesh
-    })
+      const a = (i / 18) * Math.PI * 2
+      const radius = 0.9 + (i % 3) * 0.45
+      dot.position.set(Math.cos(a) * radius, Math.sin(a) * radius, 0.05)
+      chart.add(dot)
+      stars.push(dot)
+    }
+    chart.position.set(1.7, 0.05, 0)
+    scene.add(chart)
+    const hand = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.03, 1.35),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0 }),
+    )
+    hand.position.set(1.7, 0.05, 0.1)
+    const hand2 = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.02, 0.85),
+      new THREE.MeshBasicMaterial({ color: 0xb49df0 }),
+    )
+    hand2.position.set(1.7, 0.05, 0.12)
+    scene.add(hand, hand2)
+    const gear = ring(0.48, 0.48, 0x7db1f3)
+    gear.position.set(2.85, -0.85, 0.2)
+    scene.add(gear)
+    stageFloor(scene)
     return {
       update(progress, time) {
         plate.uniforms.uTime.value = time
-        const stops = [
-          [-2.2, -1.2],
-          [0.2, -1.2],
-          [0.2, 0.8],
-          [2.1, 0.8],
-        ]
-        const span = stops.length - 1
-        const x = clamp(progress, 0, 1) * span
-        const i = Math.min(span - 1, Math.floor(x))
-        const u = x - i
-        packet.points.position.set(
-          stops[i][0] + (stops[i + 1][0] - stops[i][0]) * u,
-          stops[i][1] + (stops[i + 1][1] - stops[i][1]) * u,
-          0.2,
+        chart.rotation.z = progress * 0.25
+        const spin = time * 0.15 + progress * 2.2
+        hand.rotation.z = spin
+        hand2.rotation.z = -spin * 0.35
+        gear.rotation.z = -spin * 0.5
+        void stars
+        look(
+          scenes.almanac.camera,
+          progress,
+          new THREE.Vector3(-1.2, 0.1, 5.1),
+          new THREE.Vector3(-0.9, 0.05, 4.3),
+          new THREE.Vector3(1.7, 0.05, 0),
         )
-        bars.forEach((bar, index) => {
-          bar.scale.y = 0.35 + smoothstep(0.2 + index * 0.1, 0.75, progress) * 0.9
-        })
-        scenes.dean.camera.position.set(-1.1, 0.1, 4.1 - progress * 0.2)
-        scenes.dean.camera.lookAt(0.55, 0, 0)
       },
       plate,
     }
   })
 
-  addScene("bridge", (scene) => {
-    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.71, 0.62, 0.94), 0)
-    const field = makePoints(Math.floor(count * 0.7), [10, 4, 5], false)
-    scene.add(field.points)
-    for (let i = 0; i < 7; i += 1) {
-      const y = -1.3 + i * 0.42
-      const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-2.8, y, 0.4),
-        new THREE.Vector3(2.8, y, 0.4),
-      ])
-      scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.28 })))
+  addScene("orbit", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.15, 0.4, 0.75), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const glow = lamp("#55eef0", 0.08)
+    glow.position.set(1.5, 0.1, -1)
+    scene.add(glow)
+    const specs = [
+      [2.4, 1.15, 0.45, 0x55eef0],
+      [1.7, 0.95, -0.35, 0x7db1f3],
+      [1.05, 0.62, 0.2, 0xb49df0],
+    ]
+    const orbits = new THREE.Group()
+    for (const spec of specs) orbits.add(ellipseLine(spec[0], spec[1], spec[2], spec[3]))
+    orbits.position.set(1.65, 0.1, 0)
+    scene.add(orbits)
+    const earth = new THREE.Mesh(
+      new THREE.CircleGeometry(0.38, 32),
+      new THREE.MeshBasicMaterial({ color: 0x16383c }),
+    )
+    const earthRim = ring(0.46, 0.46, 0xe7f3f3)
+    earth.position.set(1.65, 0.1, 0.02)
+    earthRim.position.copy(earth.position)
+    scene.add(earth, earthRim)
+    const craft = new THREE.Mesh(
+      new THREE.CircleGeometry(0.07, 12),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0 }),
+    )
+    scene.add(craft)
+    const trailPts = []
+    for (let i = 0; i < 24; i += 1) trailPts.push(new THREE.Vector3())
+    const trail = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(trailPts),
+      new THREE.LineBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.7 }),
+    )
+    scene.add(trail)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const angle = progress * Math.PI * 1.7 + 0.4
+        const p = sampleEllipse(specs[0][0], specs[0][1], specs[0][2], angle)
+        craft.position.set(p.x + 1.65, p.y + 0.1, p.z + 0.08)
+        const positions = trail.geometry.attributes.position
+        for (let i = 0; i < 24; i += 1) {
+          const q = sampleEllipse(specs[0][0], specs[0][1], specs[0][2], angle - i * 0.08)
+          positions.setXYZ(i, q.x + 1.65, q.y + 0.1, q.z)
+        }
+        positions.needsUpdate = true
+        look(
+          scenes.orbit.camera,
+          progress,
+          new THREE.Vector3(-1.05, 0.25, 5.0),
+          new THREE.Vector3(-0.7, 0.15, 4.2),
+          new THREE.Vector3(1.55, 0.1, 0),
+        )
+      },
+      plate,
     }
+  })
+
+  addScene("estimate", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.71, 0.62, 0.94), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const glow = lamp("#b49df0", 0.11)
+    glow.position.set(1.9, 0.15, -0.7)
+    scene.add(glow)
+    const halo = ring(1.55, 1.55, 0xb49df0)
+    halo.position.set(2.15, 0.05, -0.35)
+    halo.material.opacity = 0.35
+    scene.add(halo)
+    const field = curtain(14, 16)
+    field.points.position.set(0.15, 0, 0)
+    scene.add(field.points)
+    const statistic = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.025, 2.5),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.85 }),
+    )
+    statistic.position.set(1.7, 0, 0.15)
+    scene.add(statistic)
+    const tree = buildTree()
+    tree.line.position.set(2.35, -0.05, 0.35)
+    tree.line.scale.setScalar(0.92)
+    scene.add(tree.line)
+    stageFloor(scene)
     return {
       update(progress, time, motion) {
         plate.uniforms.uTime.value = time
         field.uniforms.uTime.value = time
         field.uniforms.uMotion.value = motion
-        field.points.rotation.z = progress * 0.08
-        scenes.bridge.camera.position.set(-1.15, 0.05, 4.0 - progress * 0.3)
-        scenes.bridge.camera.lookAt(0.7, 0, 0)
+        field.uniforms.uCollapse.value = smoothstep(0.08, 0.72, progress)
+        tree.uniforms.uReveal.value = smoothstep(0.02, 0.46, progress)
+        halo.rotation.z = time * 0.04
+        statistic.scale.y = 0.35 + smoothstep(0.1, 0.7, progress) * 0.65
+        look(
+          scenes.estimate.camera,
+          progress,
+          new THREE.Vector3(-1.25, 0.08, 4.8),
+          new THREE.Vector3(-0.85, 0.04, 4.0),
+          new THREE.Vector3(1.85, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("cartridge", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.12, 0.28, 0.42), 0)
+    const grid = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.3, 1.7),
+      new THREE.ShaderMaterial({
+        vertexShader: MESH_VERT,
+        fragmentShader: GRID_FRAG,
+        uniforms: { uReveal: { value: 0 } },
+      }),
+    )
+    grid.position.set(1.85, 0.05, -0.15)
+    scene.add(grid)
+    const slot = frameRect(0.78, 1.15, 0xe7f3f3, 0.8)
+    slot.position.set(2.55, 0.0, 0.05)
+    scene.add(slot)
+    const colors = [0x55eef0, 0x7db1f3, 0xb49df0]
+    const cards = colors.map((color, index) => {
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.62, 0.95),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.92 }),
+      )
+      mesh.position.set(0.2 + index * 0.15, 0.15 * (1 - index), 0.2 - index * 0.05)
+      scene.add(mesh)
+      return mesh
+    })
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        grid.material.uniforms.uReveal.value = smoothstep(0.15, 0.9, progress)
+        const slide = smoothstep(0.08, 0.78, progress)
+        cards.forEach((mesh, index) => {
+          mesh.position.x = 0.35 + index * 0.22 + slide * (1.55 - index * 0.08)
+        })
+        look(
+          scenes.cartridge.camera,
+          progress,
+          new THREE.Vector3(-1.1, 0.1, 4.5),
+          new THREE.Vector3(-0.75, 0.05, 3.9),
+          new THREE.Vector3(1.8, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("reel", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.71, 0.62, 0.94), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const glow = lamp("#55eef0", 0.08)
+    glow.position.set(1.8, 0.2, -0.8)
+    scene.add(glow)
+    const frames = []
+    for (let i = 0; i < 6; i += 1) {
+      const group = new THREE.Group()
+      const card = painting(0.78, 0.48, 0x101820, i % 2 ? 0x55eef0 : 0xb49df0)
+      group.add(card)
+      const sprocket = new THREE.Mesh(
+        new THREE.CircleGeometry(0.035, 8),
+        new THREE.MeshBasicMaterial({ color: 0xe7f3f3 }),
+      )
+      sprocket.position.set(-0.48, 0, 0.02)
+      group.add(sprocket)
+      const home = new THREE.Vector3(1.85, 1.15 - i * 0.42, 0.1)
+      const scattered = new THREE.Vector3(0.4 + (i % 3) * 0.9, (i - 2.5) * 0.55, -0.8 + (i % 2) * 0.6)
+      group.position.copy(scattered)
+      group.userData.home = home
+      group.userData.scattered = scattered
+      scene.add(group)
+      frames.push(group)
+    }
+    const spine = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.04, 2.7),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.5 }),
+    )
+    spine.position.set(1.15, 0.05, -0.05)
+    scene.add(spine)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const t = smoothstep(0.08, 0.82, progress)
+        frames.forEach((group) => {
+          group.position.lerpVectors(group.userData.scattered, group.userData.home, t)
+          group.rotation.z = (1 - t) * 0.4
+        })
+        spine.scale.y = 0.2 + t * 0.8
+        look(
+          scenes.reel.camera,
+          progress,
+          new THREE.Vector3(-1.15, 0.05, 4.7),
+          new THREE.Vector3(-0.8, 0.02, 4.0),
+          new THREE.Vector3(1.7, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("steps", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.49, 0.69, 0.95), 0)
+    const pieces = [
+      painting(0.9, 0.9, 0x12383c, 0x55eef0),
+      painting(0.7, 1.15, 0x141820, 0x7db1f3),
+      painting(0.95, 0.7, 0x1a1428, 0xb49df0),
+    ]
+    pieces.forEach((piece, index) => {
+      piece.position.set(1.05 + index * 0.85, -1.1, 0.1 - index * 0.15)
+      scene.add(piece)
+    })
+    const mark = new THREE.Mesh(
+      new THREE.CircleGeometry(0.16, 16),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0 }),
+    )
+    mark.position.set(1.05, 0, 0.2)
+    scene.add(mark)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        pieces.forEach((piece, index) => {
+          const rise = smoothstep(index * 0.18, 0.45 + index * 0.18, progress)
+          piece.position.y = -0.9 + rise * 1.05
+        })
+        mark.position.y = pieces[0].position.y
+        look(
+          scenes.steps.camera,
+          progress,
+          new THREE.Vector3(-1.2, 0.15, 4.8),
+          new THREE.Vector3(-0.85, 0.1, 4.1),
+          new THREE.Vector3(1.8, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("ledger", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.49, 0.69, 0.95), new THREE.Vector3(0.71, 0.62, 0.94), 0)
+    const left = painting(1.05, 1.7, 0x101820, 0x7db1f3)
+    const right = painting(1.05, 1.7, 0x161222, 0xb49df0)
+    left.position.set(1.25, 0.05, 0)
+    right.position.set(2.55, 0.05, 0.05)
+    scene.add(left, right)
+    const slit = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.045, 1.9),
+      new THREE.MeshBasicMaterial({ color: 0x55eef0, transparent: true, opacity: 0.8 }),
+    )
+    slit.position.set(1.9, 0.05, 0.2)
+    scene.add(slit)
+    const glow = lamp("#55eef0", 0.08)
+    glow.position.set(1.9, 0.2, -0.6)
+    scene.add(glow)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const open = smoothstep(0.05, 0.6, progress)
+        left.position.x = 1.55 - open * 0.28
+        right.position.x = 2.25 + open * 0.28
+        left.rotation.y = open * 0.18
+        right.rotation.y = -open * 0.18
+        look(
+          scenes.ledger.camera,
+          progress,
+          new THREE.Vector3(-1.05, 0.12, 4.6),
+          new THREE.Vector3(-0.7, 0.08, 4.0),
+          new THREE.Vector3(1.9, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("aperture", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.71, 0.62, 0.94), 0)
+    const glow = lamp("#55eef0", 0.12)
+    glow.position.set(1.7, 0.15, -0.4)
+    scene.add(glow)
+    const arch = ellipseLine(1.15, 1.55, 0, 0x55eef0)
+    arch.position.set(1.75, 0.15, 0)
+    scene.add(arch)
+    const jambL = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.04, 1.7),
+      new THREE.MeshBasicMaterial({ color: 0x7db1f3 }),
+    )
+    const jambR = jambL.clone()
+    jambL.position.set(0.7, -0.35, 0.05)
+    jambR.position.set(2.8, -0.35, 0.05)
+    scene.add(jambL, jambR)
+    const sill = frameRect(2.2, 1.15, 0xb49df0, 0.85)
+    sill.position.set(1.75, -0.15, 0.15)
+    scene.add(sill)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const open = smoothstep(0.05, 0.7, progress)
+        jambL.position.x = 1.15 - open * 0.45
+        jambR.position.x = 2.35 + open * 0.45
+        arch.scale.setScalar(0.86 + open * 0.2)
+        look(
+          scenes.aperture.camera,
+          progress,
+          new THREE.Vector3(-1.2, 0.1, 4.7),
+          new THREE.Vector3(-0.8, 0.06, 3.9),
+          new THREE.Vector3(1.75, 0.05, 0),
+        )
       },
       plate,
     }
@@ -675,7 +961,7 @@ export function createGraphics(canvas) {
   const finalPass = makePass(FINAL_FRAG, {
     tMap: { value: null },
     tBloom: { value: null },
-    uBloom: { value: 0.42 },
+    uBloom: { value: 0.28 },
   })
 
   let rtA
@@ -701,14 +987,13 @@ export function createGraphics(canvas) {
     const cssW = canvas.clientWidth || window.innerWidth
     const cssH = canvas.clientHeight || window.innerHeight
     const dpr = Math.min(window.devicePixelRatio || 1, cssW < 800 ? 1 : 1.15)
-    const aspect = cssW / Math.max(1, cssH)
     const capW = software ? 720 : 960
     const capH = software ? 450 : 600
     let w = Math.max(2, Math.round(Math.min(cssW * dpr, capW)))
-    let h = Math.max(2, Math.round(w / aspect))
+    let h = Math.max(2, Math.round(w / (cssW / Math.max(1, cssH))))
     if (h > capH) {
       h = capH
-      w = Math.max(2, Math.round(h * aspect))
+      w = Math.max(2, Math.round(h * (cssW / Math.max(1, cssH))))
     }
     if (Math.abs(w - size.w) < 8 && Math.abs(h - size.h) < 8 && rtA) return
     size = { w, h }
@@ -725,6 +1010,7 @@ export function createGraphics(canvas) {
     try {
       scene.update(clamp(progress, 0, 1), time, motion)
       renderer.setRenderTarget(rt)
+      renderer.setClearColor(0x101010, 1)
       renderer.clear()
       if (scene.plate) renderer.render(scene.plate.scene, scene.plate.camera)
       renderer.clearDepth()
@@ -749,7 +1035,7 @@ export function createGraphics(canvas) {
     const chapter = chapters[index]
     const prev = chapters[index - 1]
     const next = chapters[index + 1]
-    const windowVh = 0.36
+    const windowVh = 0.42
     let from = chapter.scene
     let to = chapter.scene
     let blend = 0
@@ -800,7 +1086,7 @@ export function createGraphics(canvas) {
         renderer.render(finalPass.scene, ortho)
         return
       }
-      finalPass.uniforms.uBloom.value = 0.42
+      finalPass.uniforms.uBloom.value = 0.28
       extract.uniforms.tMap.value = rtMix.texture
       blit(extract, bloom[0])
       blur.uniforms.tMap.value = bloom[0].texture
@@ -830,14 +1116,22 @@ export function createGraphics(canvas) {
       if (scene.plate) scene.plate.uniforms.uSimple.value = 1
     }
   }
+
+  const warmStarted = performance.now()
   resize()
-  for (const id of Object.keys(scenes)) renderScene(id, 0.45, 0, 0, rtA)
-  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 32))
-  idle(() => {
-    for (const scene of Object.values(scenes)) {
-      renderer.compileAsync?.(scene.scene, scene.camera).catch(() => {})
+  const ids = Object.keys(scenes)
+  for (const id of ids) {
+    renderScene(id, 0.2, 0.2, 0, rtA)
+    renderScene(id, 0.65, 0.8, 1, rtA)
+    try {
+      renderer.compile?.(scenes[id].scene, scenes[id].camera)
+    } catch {
+      /* compile is a hint; the renders above already built the programs */
     }
-  })
+  }
+  render({ value: 0.4, time: 0.2, motion: 0 })
+  render({ value: chapters[4].start + 0.8, time: 0.6, motion: 1 })
+  const warmMs = performance.now() - warmStarted
 
   return {
     render,
@@ -845,6 +1139,7 @@ export function createGraphics(canvas) {
     disabled,
     rendererName,
     quality: software ? "software" : "hdr",
+    warmMs,
     dispose() {
       disposeTargets()
       renderer.dispose()

@@ -2,20 +2,18 @@
 
 export const SOFT = 0.12
 
+/** Each chapter owns one scene id. Neighbors must differ so the composite can wipe between them. */
 export const chapters = [
-  { id: "intro", start: 0, span: 1.15, scene: "field" },
-  { id: "hero", start: 1.15, span: 1.9, scene: "field" },
-  { id: "lineage", start: 3.05, span: 1.4, scene: "field" },
-  { id: "banneker", start: 4.45, span: 1.75, scene: "banneker" },
-  { id: "johnson", start: 6.2, span: 1.8, scene: "johnson" },
-  { id: "blackwell", start: 8.0, span: 2.6, scene: "blackwell" },
-  { id: "lawson", start: 10.6, span: 1.7, scene: "lawson" },
-  { id: "dean", start: 12.3, span: 1.7, scene: "dean" },
-  { id: "bridge", start: 14.0, span: 1.45, scene: "bridge" },
-  { id: "method", start: 15.45, span: 1.45, scene: "bridge" },
-  { id: "agent", start: 16.9, span: 1.4, scene: "bridge" },
-  { id: "pricing", start: 18.3, span: 1.75, scene: "bridge" },
-  { id: "cta", start: 20.05, span: 1.5, scene: "field" },
+  { id: "hero", start: 0, span: 1.85, scene: "studio" },
+  { id: "lineage", start: 1.85, span: 1.35, scene: "gallery" },
+  { id: "banneker", start: 3.2, span: 1.7, scene: "almanac" },
+  { id: "johnson", start: 4.9, span: 1.7, scene: "orbit" },
+  { id: "blackwell", start: 6.6, span: 2.55, scene: "estimate", settle: 0.62 },
+  { id: "lawson", start: 9.15, span: 1.65, scene: "cartridge" },
+  { id: "reel", start: 10.8, span: 1.55, scene: "reel" },
+  { id: "method", start: 12.35, span: 1.6, scene: "steps" },
+  { id: "pricing", start: 13.95, span: 1.7, scene: "ledger" },
+  { id: "cta", start: 15.65, span: 1.45, scene: "aperture" },
 ]
 
 export const end = chapters[chapters.length - 1].start + chapters[chapters.length - 1].span
@@ -23,7 +21,10 @@ export const end = chapters[chapters.length - 1].start + chapters[chapters.lengt
 /** Settled frame: after the soft corner, before the exit. */
 export const states = Object.fromEntries(
   chapters.map((chapter) => {
-    const settled = chapter.start + Math.min(chapter.span * 0.42, SOFT + chapter.span * 0.34)
+    const settled =
+      chapter.settle != null
+        ? chapter.start + chapter.span * chapter.settle
+        : chapter.start + Math.min(chapter.span * 0.42, SOFT + chapter.span * 0.34)
     return [chapter.id, Number(settled.toFixed(3))]
   }),
 )
@@ -40,7 +41,7 @@ export function clamp(v, a, b) {
 }
 
 export function pinHold(value, start, stop, soft = SOFT) {
-  const fadeIn = smoothstep(start, start + soft, value)
+  const fadeIn = start <= 0 ? 1 : smoothstep(start, start + soft, value)
   const fadeOut = 1 - smoothstep(stop - soft, stop, value)
   return fadeIn * fadeOut
 }

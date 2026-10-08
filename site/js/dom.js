@@ -50,7 +50,7 @@ export function applyScroll(value, film) {
     const stop = chapter.start + chapter.span
     const hold = pinHold(value, start, stop, SOFT)
     card.style.transform = `translate3d(0, ${((value - start) * vh * hold).toFixed(2)}px, 0)`
-    const fadeIn = smoothstep(start, start + SOFT, value)
+    const fadeIn = start <= 0 ? 1 : smoothstep(start, start + SOFT, value)
     const fadeOut = 1 - smoothstep(stop - SOFT, stop, value)
     card.style.opacity = String(Math.min(fadeIn, fadeOut))
     const local = (value - start) / chapter.span
