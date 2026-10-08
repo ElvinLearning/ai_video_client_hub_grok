@@ -53,9 +53,14 @@ ${SAFE}
 void main() {
   vec2 uv = vUv;
   if (uSimple > 0.5) {
-    vec3 col = vec3(0.008, 0.009, 0.011);
-    col += uA * uv.x * uv.x * 0.035;
-    col += uB * uv.x * 0.02;
+    float n = fbm(uv * vec2(2.4, 1.4) + uTime * 0.01);
+    float streak = fbm(vec2(uv.x * 0.8, uv.y * 5.5));
+    vec3 col = vec3(0.012, 0.013, 0.016);
+    float pool = sstep(0.2, 0.9, n) * sstep(0.05, 0.85, uv.x);
+    col += uA * pool * 0.28;
+    col += uB * streak * pool * 0.16;
+    float vig = sstep(1.15, 0.2, length(uv - vec2(0.68, 0.46)));
+    col *= mix(0.28, 1.0, vig);
     gl_FragColor = vec4(col, 1.0);
     return;
   }
@@ -307,9 +312,19 @@ function frameRect(w, h, color, opacity = 0.9) {
   )
 }
 
+function litMat(color, roughness = 0.42) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness: 0.06,
+    emissive: new THREE.Color(color),
+    emissiveIntensity: 0.05,
+  })
+}
+
 function frameMesh(w, h, color, t = 0.045) {
   const group = new THREE.Group()
-  const mat = new THREE.MeshBasicMaterial({ color })
+  const mat = litMat(color, 0.32)
   const top = new THREE.Mesh(new THREE.PlaneGeometry(w + t, t), mat)
   const bot = new THREE.Mesh(new THREE.PlaneGeometry(w + t, t), mat)
   const left = new THREE.Mesh(new THREE.PlaneGeometry(t, h), mat)
@@ -324,10 +339,7 @@ function frameMesh(w, h, color, t = 0.045) {
 
 function painting(w, h, fill, stroke) {
   const group = new THREE.Group()
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshBasicMaterial({ color: fill, transparent: true, opacity: 0.92, depthWrite: false }),
-  )
+  const board = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.07), litMat(fill, 0.72))
   group.add(board)
   group.add(frameMesh(w, h, stroke, Math.max(0.035, Math.min(w, h) * 0.045)))
   return group
@@ -355,11 +367,8 @@ function sampleEllipse(rx, ry, tilt, angle) {
 }
 
 function ring(rx, ry, color) {
-  const mesh = new THREE.Mesh(
-    new THREE.RingGeometry(0.78, 1, 72),
-    new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }),
-  )
-  mesh.scale.set(rx, ry, 1)
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(1, 0.045, 10, 56), litMat(color, 0.28))
+  mesh.scale.set(rx, ry, (rx + ry) * 0.35)
   return mesh
 }
 
@@ -463,7 +472,7 @@ function target(w, h, half) {
 export function createGraphics(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     alpha: false,
     powerPreference: "high-performance",
   })
@@ -479,8 +488,22 @@ export function createGraphics(canvas) {
   const disabled = new Set()
   const scenes = {}
 
+  function addLights(scene) {
+    scene.add(new THREE.AmbientLight(0x24323a, 0.9))
+    const key = new THREE.DirectionalLight(0xf4fbfb, 2.6)
+    key.position.set(-3.4, 4.4, 5.2)
+    scene.add(key)
+    const rim = new THREE.DirectionalLight(0xb49df0, 1.5)
+    rim.position.set(4.6, 0.4, -2.4)
+    scene.add(rim)
+    const cool = new THREE.DirectionalLight(0x55eef0, 0.45)
+    cool.position.set(0.4, -1.2, 3)
+    scene.add(cool)
+  }
+
   function addScene(id, build) {
     const scene = new THREE.Scene()
+    addLights(scene)
     const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 40)
     const api = build(scene, camera)
     scenes[id] = { scene, camera, ...api }
@@ -944,6 +967,155 @@ export function createGraphics(canvas) {
           new THREE.Vector3(-1.2, 0.1, 4.7),
           new THREE.Vector3(-0.8, 0.06, 3.9),
           new THREE.Vector3(1.75, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("break", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.49, 0.69, 0.95), new THREE.Vector3(0.71, 0.62, 0.94), 0)
+    const stone = new THREE.Mesh(new THREE.SphereGeometry(0.72, 32, 24), litMat(0x1a2428, 0.55))
+    stone.position.set(1.7, 0.05, 0)
+    scene.add(stone)
+    const crack = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.5, 0.08), litMat(0x55eef0, 0.3))
+    crack.position.set(1.7, 0.05, 0.55)
+    crack.rotation.z = 0.15
+    scene.add(crack)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        stone.rotation.y = progress * 0.6
+        crack.scale.y = 0.4 + smoothstep(0.1, 0.7, progress)
+        look(
+          scenes.break.camera,
+          progress,
+          new THREE.Vector3(-1.2, 0.1, 4.6),
+          new THREE.Vector3(-0.85, 0.05, 3.9),
+          new THREE.Vector3(1.65, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("drift", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.71, 0.62, 0.94), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const parts = [0, 1, 2].map((index) => {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 18), litMat(index === 1 ? 0x55eef0 : 0x7db1f3, 0.4))
+      scene.add(mesh)
+      return mesh
+    })
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const pull = smoothstep(0.12, 0.78, progress)
+        parts.forEach((mesh, index) => {
+          const spread = (1 - pull) * (index - 1) * 0.7
+          mesh.position.set(1.7 + spread, spread * 0.35, index * 0.12)
+          mesh.scale.setScalar(0.75 + pull * 0.45)
+        })
+        look(
+          scenes.drift.camera,
+          progress,
+          new THREE.Vector3(-1.15, 0.12, 4.5),
+          new THREE.Vector3(-0.8, 0.06, 3.8),
+          new THREE.Vector3(1.7, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("steer", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.33, 0.93, 0.94), new THREE.Vector3(0.49, 0.69, 0.95), 0)
+    const gate = ring(1.15, 1.35, 0x55eef0)
+    gate.position.set(1.75, 0.1, 0)
+    scene.add(gate)
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 2.2), litMat(0xb49df0, 0.25))
+    beam.position.set(1.75, 0.1, 0.4)
+    scene.add(beam)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const aim = smoothstep(0.1, 0.8, progress)
+        beam.rotation.y = (1 - aim) * 0.8
+        beam.rotation.z = (0.5 - aim) * 0.4
+        gate.rotation.z = time * 0.05
+        look(
+          scenes.steer.camera,
+          progress,
+          new THREE.Vector3(-1.15, 0.1, 4.6),
+          new THREE.Vector3(-0.8, 0.05, 3.9),
+          new THREE.Vector3(1.7, 0.08, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("spend", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.2, 0.4, 0.7), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const slabs = [0, 1, 2, 3].map((index) => {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, 0.95, 0.06),
+        litMat(index === 0 ? 0x55eef0 : 0x1c2830, index === 0 ? 0.3 : 0.7),
+      )
+      scene.add(mesh)
+      return mesh
+    })
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const choose = smoothstep(0.1, 0.75, progress)
+        slabs.forEach((mesh, index) => {
+          const keep = index === 0
+          mesh.position.set(1.15 + index * 0.42, keep ? 0.15 : -0.2 * (1 - choose), keep ? 0.3 : -0.2)
+          mesh.scale.setScalar(keep ? 1 : 1 - choose * 0.35)
+        })
+        look(
+          scenes.spend.camera,
+          progress,
+          new THREE.Vector3(-1.1, 0.12, 4.6),
+          new THREE.Vector3(-0.75, 0.06, 3.9),
+          new THREE.Vector3(1.8, 0.05, 0),
+        )
+      },
+      plate,
+    }
+  })
+
+  addScene("longer", (scene) => {
+    const plate = makePlate(new THREE.Vector3(0.71, 0.62, 0.94), new THREE.Vector3(0.33, 0.93, 0.94), 0)
+    const cells = []
+    for (let i = 0; i < 5; i += 1) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.4, 0.05), litMat(i < 3 ? 0x24343a : 0x101418, 0.5))
+      mesh.position.set(1.2 + (i % 3) * 0.5, 0.4 - Math.floor(i / 3) * 0.7, 0)
+      scene.add(mesh)
+      cells.push(mesh)
+    }
+    const gap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.3, 0.04), litMat(0xb49df0, 0.3))
+    gap.position.set(2.35, 0.05, 0.1)
+    scene.add(gap)
+    stageFloor(scene)
+    return {
+      update(progress, time) {
+        plate.uniforms.uTime.value = time
+        const join = smoothstep(0.15, 0.85, progress)
+        cells.forEach((mesh, index) => {
+          mesh.position.x = 0.9 + index * 0.38 * join + (1 - join) * (index % 2) * 0.4
+        })
+        gap.scale.y = 1 - join * 0.7
+        look(
+          scenes.longer.camera,
+          progress,
+          new THREE.Vector3(-1.15, 0.1, 4.6),
+          new THREE.Vector3(-0.8, 0.04, 3.9),
+          new THREE.Vector3(1.7, 0.05, 0),
         )
       },
       plate,

@@ -216,7 +216,7 @@ html.is-film .stage::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(16, 16, 16, 0.96) 0%, rgba(16, 16, 16, 0.9) 34%, rgba(16, 16, 16, 0.55) 48%, rgba(16, 16, 16, 0) 70%);
+  background: linear-gradient(90deg, rgba(16, 16, 16, 0.92) 0%, rgba(16, 16, 16, 0.72) 22%, rgba(16, 16, 16, 0.28) 42%, rgba(16, 16, 16, 0) 58%);
   z-index: 1;
 }
 html.is-film #track { position: absolute; inset: 0 auto auto 0; width: 100%; z-index: 2; }
@@ -254,8 +254,9 @@ h1, h2, h3 {
   line-height: 0.92;
   margin: 0;
 }
-h1 { font-size: clamp(3.5rem, 7.2vw, 6.8rem); }
-h2 { font-size: clamp(3.1rem, 6.4vw, 6.2rem); }
+h1 { font-size: clamp(4.2rem, 8.6vw, 8.2rem); }
+h2 { font-size: clamp(3.6rem, 7.4vw, 7rem); }
+h1, h2 { text-shadow: 0 12px 36px rgba(0, 0, 0, 0.55); }
 h1 em, h2 em { font-style: italic; font-weight: 500; color: var(--cyan); }
 .lede, .chapter p { color: var(--ink); }
 .lede { max-width: 38rem; font-size: 1.2rem; line-height: 1.45; margin: 1.2rem 0 0; }

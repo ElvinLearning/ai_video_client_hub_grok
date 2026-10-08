@@ -11,9 +11,14 @@ export const chapters = [
   { id: "blackwell", start: 6.6, span: 2.55, scene: "estimate", settle: 0.62 },
   { id: "lawson", start: 9.15, span: 1.65, scene: "cartridge" },
   { id: "reel", start: 10.8, span: 1.55, scene: "reel" },
-  { id: "method", start: 12.35, span: 1.6, scene: "steps" },
-  { id: "pricing", start: 13.95, span: 1.7, scene: "ledger" },
-  { id: "cta", start: 15.65, span: 1.45, scene: "aperture" },
+  { id: "method", start: 12.35, span: 1.55, scene: "steps" },
+  { id: "why", start: 13.9, span: 1.25, scene: "break" },
+  { id: "drift", start: 15.15, span: 1.4, scene: "drift" },
+  { id: "steer", start: 16.55, span: 1.4, scene: "steer" },
+  { id: "spend", start: 17.95, span: 1.35, scene: "spend" },
+  { id: "longer", start: 19.3, span: 1.4, scene: "longer" },
+  { id: "pricing", start: 20.7, span: 1.65, scene: "ledger" },
+  { id: "cta", start: 22.35, span: 1.4, scene: "aperture" },
 ]
 
 export const end = chapters[chapters.length - 1].start + chapters[chapters.length - 1].span

@@ -129,7 +129,7 @@ function frame(now) {
       window.scrollTo(0, eased * end * window.innerHeight)
       target = eased * end
     } else {
-      const duration = 28000
+      const duration = 36000
       const t = Math.min(1, elapsed / duration)
       const next = t * states.cta
       window.scrollTo(0, next * window.innerHeight)
