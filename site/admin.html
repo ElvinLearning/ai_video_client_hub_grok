@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin · Cozy Digital</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+  <body data-page="admin">
+    <header class="top">
+      <a class="brand" href="/"><img src="/brand/cozy-digital-logo.png" alt="" /><span>Cozy <span class="digital">Digital</span></span></a>
+      <nav>
+        <a href="/portal">Desk</a>
+        <button type="button" id="logout">Sign out</button>
+      </nav>
+    </header>
+    <main class="wrap">
+      <p class="muted">Studio only</p>
+      <h1>Clients and <em>generations.</em></h1>
+      <p class="banner" id="mode-banner">Checking Higgsfield…</p>
+      <section class="card">
+        <h2>Clients</h2>
+        <div id="clients"></div>
+      </section>
+      <section class="card" style="margin-top: 1rem">
+        <h2>Requests</h2>
+        <div id="requests"></div>
+      </section>
+    </main>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
